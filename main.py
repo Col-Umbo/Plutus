@@ -2,7 +2,7 @@ import sys
 from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
-
+from PySide6.QtCore import QFileInfo
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -13,8 +13,7 @@ class MainWindow(QMainWindow):
         # Load a local HTML file or remote URL
         # For a local file, ensure the URL is properly formatted:
         # e.g., QUrl.fromLocalFile("/absolute/path/to/your/index.html")
-        local_html = QUrl.fromLocalFile("/home/icefirefish/test.html")
-        print(local_html)
+        local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
         self.browser.setUrl(local_html)
         
         # Alternatively, to load a remote URL:
