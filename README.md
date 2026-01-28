@@ -6,6 +6,6 @@ Figure out how to do API style requests in PySide6
 Develop backend functions
 Prepare & connect database
 Current development requirements:
-```Python packages:
+Python packages:
 Pyside6
-JavaScript packages:```
+JavaScript packages:
