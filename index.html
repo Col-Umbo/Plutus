@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
@@ -8,5 +9,18 @@
 </head>
 <body>
     <h1>Plutus</h1>
+    <script>
+        // This opens the connection with the Python end
+    new QWebChannel(qt.webChannelTransport, function (channel) {
+        window.handler = channel.objects.handler;
+        // Once this connection is established, you can simply call backend methods.
+        handler.send_to_server('hello')
+        // Getting return values from methods requires a little extra work. Call function(return_value) as a parameter, as shown below
+        handler.int_test(7,function(ret){
+        handler.int_test(ret)
+        });
+
+    });
+</script>
 </body>
 </html>
