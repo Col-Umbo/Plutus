@@ -2,7 +2,14 @@ const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("overlay");
 const openBtn = document.getElementById("openBtn");
 const closeBtn = document.getElementById("closeBtn");
-const content = document.getElementById("content");
+
+import clearDiv from "./functions/clearDiv.js";
+
+import homePage from "./page/homePage.js";
+import logEntry from "./page/logEntry.js";
+import budgetPage from "./page/budget.js";
+import whatIfPage from "./page/whatIf.js";
+import goalPage from "./page/goal.js";
 
 function openMenu() {
   sidebar.classList.add("open");
@@ -48,7 +55,20 @@ sidebar.querySelectorAll(".nav a").forEach((link) => {
   link.addEventListener("click", (e) => {
     e.preventDefault();
     const pageName = link.dataset.page || link.textContent.trim();
-    content.textContent = "";
+
+    // NEW ****************************************************** DELETE WHENEVER
+    clearDiv.unrender();
+    if (pageName === "Home") {
+      homePage.render();
+    } else if (pageName === "LogEntry") {
+      logEntry.render();
+    } else if (pageName === "Budget") {
+      budgetPage.render();
+    } else if (pageName === "WhatIf") {
+      whatIfPage.render();
+    } else if (pageName === "Goals") {
+      goalPage.render();
+    }
 
     closeMenu();
   });
