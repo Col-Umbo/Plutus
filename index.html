@@ -4,11 +4,11 @@
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Plutus</title>
     <link rel="stylesheet" href="index.css">
+    <link href="Sansation-Bold.ttf" rel="stylesheet">
 </head>
 <body>
-    <h1>Plutus</h1>
     <script>
         // This opens the connection with the Python end
     new QWebChannel(qt.webChannelTransport, function (channel) {
@@ -22,5 +22,71 @@
 
     });
 </script>
+
+ <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
+    <div class="sidebar-header">
+      <button id="closeBtn" class="menu-btn is-open" aria-label="Close menu" aria-controls="sidebar" aria-expanded="true">
+        <span class="icon" aria-hidden="true">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </span>
+      </button>
+
+      <div class="logo-text">Plutus</div>
+    </div>
+
+    <nav class="nav">
+      <a href="#home" data-page="Home">Home</a>
+      <a href="#log-entry" data-page="Log Entry">Log Entry</a>
+      <a href="#budget" data-page="Budget">Budget</a>
+      <a href="#what-if" data-page="What-If">What-If</a>
+      <a href="#goals" data-page="Goals">Goals</a>
+    </nav>
+  </aside>
+
+  <!-- Overlay -->
+  <div id="overlay" class="overlay" tabindex="-1" aria-hidden="true"></div>
+
+  <!-- Topbar (closed state view) -->
+  <header class="topbar">
+    <div class="brand">
+      <button id="openBtn" class="menu-btn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+        <span class="icon" aria-hidden="true">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </span>
+      </button>
+
+      <div class="logo-text">Plutus</div>
+    </div>
+
+    <!-- Bell and User Icons -->
+    <div class="actions" aria-hidden="true">
+      <!-- bell -->
+      <div class="action-icon" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
+          <path d="M13.73 21a2 2 0 01-3.46 0" />
+        </svg>
+      </div>
+      <!-- user -->
+      <div class="action-icon" title="Profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21a8 8 0 10-16 0" />
+          <path d="M12 11a4 4 0 100-8 4 4 0 000 8z" />
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main class="page" id="content" aria-live="polite">
+      <h1>Home</h1>
+  </main>
+
+  <script src="index.js"></script>
 </body>
 </html>
