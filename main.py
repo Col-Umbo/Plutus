@@ -5,9 +5,26 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QFileInfo
+import sqlite3
+from sqlcipher3 import dbapi2 as sqlite
 import json
 class CallHandler(QObject):
-
+    # Open sqlite connection
+    con = sqlite.connect("plutus.db")
+    cursor = con.cursor()
+    # Sample password setting
+    cursor.execute("PRAGMA key = 'password'")
+    # Sample conditional table creation. Important.
+    cursor.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)')
+    # Sample table insertion
+    # cursor.execute("INSERT INTO users (name) VALUES ('John Doe')")
+    # All changed are staged for commit. Must commit once finished.
+    con.commit()
+    # Sample database pull
+    test = cursor.execute("SELECT id, name FROM users")
+    for row in test:
+        print(row)
+    con.close()
     # take an argument from javascript - JS:  handler.send_to_server('hello!')
     @Slot(QJsonValue)
     def send_to_server(self, *args):
