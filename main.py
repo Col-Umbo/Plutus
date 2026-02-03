@@ -17,13 +17,15 @@ class CallHandler(QObject):
     # Sample conditional table creation. Important.
     cursor.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)')
     # Sample table insertion
-    # cursor.execute("INSERT INTO users (name) VALUES ('John Doe')")
+    cursor.execute("INSERT INTO users (name) VALUES ('John Doe')")
     # All changed are staged for commit. Must commit once finished.
     con.commit()
     # Sample database pull
     test = cursor.execute("SELECT id, name FROM users")
     for row in test:
         print(row)
+    cursor.execute("DROP TABLE users")
+    con.commit()
     con.close()
     # take an argument from javascript - JS:  handler.send_to_server('hello!')
     @Slot(QJsonValue)
