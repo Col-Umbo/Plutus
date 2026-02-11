@@ -1,4 +1,5 @@
 import sys
+import os
 from PySide6.QtCore import QUrl
 from PySide6.QtCore import QObject, Slot, QJsonValue
 from PySide6.QtWidgets import QApplication, QMainWindow
@@ -50,8 +51,10 @@ class MainWindow(QMainWindow):
         self.browser.channel.registerObject('handler', self.browser.handler)
         self.browser.page().setWebChannel(self.browser.channel)
         # In order to allow relative paths to work across different systems, follow the below example
-        local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
-        # Please note that before running build.py, change the above filepath to _internal/index.html or else it will fail to load the file
+        if os.path.isdir('_internal'):
+            local_html = QUrl.fromLocalFile(QFileInfo("_internal/index.html").absoluteFilePath())
+        else:
+            local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
         self.browser.setUrl(local_html)
 
         self.setCentralWidget(self.browser)
