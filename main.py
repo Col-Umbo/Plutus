@@ -51,6 +51,7 @@ class MainWindow(QMainWindow):
         self.browser.page().setWebChannel(self.browser.channel)
         # In order to allow relative paths to work across different systems, follow the below example
         local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
+        # Please note that before running build.py, change the above filepath to _internal/index.html or else it will fail to load the file
         self.browser.setUrl(local_html)
 
         self.setCentralWidget(self.browser)
