@@ -1,5 +1,6 @@
 import sys
 import os
+import datetime
 from PySide6.QtCore import QUrl
 from PySide6.QtCore import QObject, Slot, QJsonValue
 from PySide6.QtWidgets import QApplication, QMainWindow
@@ -52,6 +53,7 @@ class MainWindow(QMainWindow):
         self.browser.page().setWebChannel(self.browser.channel)
         # In order to allow relative paths to work across different systems, follow the below example
         if os.path.isdir('_internal'):
+            # This conditional is necessary in order for the executable to load index.html properly. From there, everything else should load just fine.
             local_html = QUrl.fromLocalFile(QFileInfo("_internal/index.html").absoluteFilePath())
         else:
             local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
