@@ -1,5 +1,6 @@
 import sys
 import os
+import classes
 import datetime
 from PySide6.QtCore import QUrl
 from PySide6.QtCore import QObject, Slot, QJsonValue
@@ -7,6 +8,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QFileInfo
+from PySide6.QtWebEngineCore import QWebEngineSettings
 import sqlite3
 from sqlcipher3 import dbapi2 as sqlite
 import json
@@ -51,6 +53,7 @@ class MainWindow(QMainWindow):
         self.browser.handler = CallHandler()
         self.browser.channel.registerObject('handler', self.browser.handler)
         self.browser.page().setWebChannel(self.browser.channel)
+        self.browser.settings().setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
         # In order to allow relative paths to work across different systems, follow the below example
         if os.path.isdir('_internal'):
             # This conditional is necessary in order for the executable to load index.html properly. From there, everything else should load just fine.
