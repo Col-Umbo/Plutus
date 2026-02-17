@@ -16,21 +16,15 @@ class CallHandler(QObject):
     # Open sqlite connection
     con = sqlite.connect("plutus.db")
     cursor = con.cursor()
-    # Sample password setting
-    cursor.execute("PRAGMA key = 'password'")
-    # Sample conditional table creation. Important.
-    cursor.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)')
-    # Sample table insertion
-    cursor.execute("INSERT INTO users (name) VALUES ('John Doe')")
-    # All changed are staged for commit. Must commit once finished.
+    # print(datetime.date.today().strftime('%m-%y'))
+    cursor.execute('CREATE TABLE IF NOT EXISTS Categories (categoryName TEXT PRIMARY KEY, type TEXT, amount FLOAT, icon TEXT)')
+    cursor.execute('CREATE TABLE IF NOT EXISTS Transactions (id INTEGER PRIMARY KEY, type TEXT, date TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, FOREIGN KEY(categoryName) REFERENCES Categories(categoryName))')
+    cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY, name TEXT, totalBalance FLOAT, remBalance FLOAT, monthlyAmount FLOAT, paidOff BOOL)')
+    # cursor.execute('INSERT INTO Categories (categoryName, type, amount, icon) VALUES ("Rent", "Expense", 1199.99, "House")')
     con.commit()
-    # Sample database pull
-    test = cursor.execute("SELECT id, name FROM users")
-    for row in test:
-        print(row)
-    cursor.execute("DROP TABLE users")
-    con.commit()
-    con.close()
+    # # Sample password setting
+    # cursor.execute("PRAGMA key = 'password'")
+    
     # take an argument from javascript - JS:  handler.send_to_server('hello!')
     @Slot(QJsonValue)
     def send_to_server(self, *args):
@@ -57,7 +51,7 @@ class MainWindow(QMainWindow):
         # In order to allow relative paths to work across different systems, follow the below example
         if os.path.isdir('_internal'):
             # This conditional is necessary in order for the executable to load index.html properly. From there, everything else should load just fine.
-            local_html = QUrl.fromLocalFile(QFileInfo("_internal/index.html").absoluteFilePath())
+            local_html = QUrl.fromLocalFile(QFileInfo("_internal"+os.pathsep+"index.html").absoluteFilePath())
         else:
             local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
         self.browser.setUrl(local_html)

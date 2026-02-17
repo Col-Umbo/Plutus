@@ -10,6 +10,7 @@ import logEntry from "./page/logEntry.js";
 import budgetPage from "./page/budget.js";
 import whatIfPage from "./page/whatIf.js";
 import goalPage from "./page/goal.js";
+import testPage from "./page/test.js";
 
 function openMenu() {
   sidebar.classList.add("open");
@@ -68,6 +69,8 @@ sidebar.querySelectorAll(".nav a").forEach((link) => {
       whatIfPage.render();
     } else if (pageName === "Goals") {
       goalPage.render();
+    } else if (pageName === "Test") {
+      testPage.render();
     }
 
     closeMenu();
