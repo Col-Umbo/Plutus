@@ -12,6 +12,10 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 import sqlite3
 from sqlcipher3 import dbapi2 as sqlite
 import json
+from PySide6.QtWebEngineCore import QWebEnginePage
+from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtCore import Qt
+
 class CallHandler(QObject):
     # Open sqlite connection
     con = sqlite.connect("plutus.db")
@@ -41,25 +45,63 @@ class CallHandler(QObject):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        # Create a QWebEngineView widget
-        self.browser = QWebEngineView()
-        self.browser.channel = QWebChannel()
-        self.browser.handler = CallHandler()
-        self.browser.channel.registerObject('handler', self.browser.handler)
-        self.browser.page().setWebChannel(self.browser.channel)
-        self.browser.settings().setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
-        # In order to allow relative paths to work across different systems, follow the below example
-        if os.path.isdir('_internal'):
-            # This conditional is necessary in order for the executable to load index.html properly. From there, everything else should load just fine.
-            local_html = QUrl.fromLocalFile(QFileInfo("_internal"+os.pathsep+"index.html").absoluteFilePath())
+
+        # Create the main web view ONCE
+        self.browser = QWebEngineView(self)
+
+        from PySide6.QtWidgets import QDockWidget
+
+        # Enable DevTools (attach to the SAME page)
+        self.dev_tools = QWebEngineView(self)
+        self.browser.page().setDevToolsPage(self.dev_tools.page())
+
+        # Create dock widget
+        self.dev_dock = QDockWidget("DevTools", self)
+        self.dev_dock.setWidget(self.dev_tools)
+        self.dev_dock.setVisible(False)
+
+        self.dev_dock.setFeatures(
+            QDockWidget.DockWidgetMovable |
+            QDockWidget.DockWidgetFloatable |
+            QDockWidget.DockWidgetClosable
+        )
+
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.dev_dock)
+
+        # WebChannel setup
+        self.channel = QWebChannel(self.browser.page())
+        self.handler = CallHandler()
+        self.channel.registerObject("handler", self.handler)
+        self.browser.page().setWebChannel(self.channel)
+
+        # Settings
+        self.browser.settings().setAttribute(
+            QWebEngineSettings.LocalContentCanAccessRemoteUrls, True
+        )
+
+        # Load local HTML
+        if os.path.isdir("_internal"):
+            local_html = QUrl.fromLocalFile(QFileInfo(os.path.join("_internal", "index.html")).absoluteFilePath())
         else:
             local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
+
         self.browser.setUrl(local_html)
 
+        # UI
         self.setCentralWidget(self.browser)
         self.showMaximized()
         self.setWindowTitle("Plutus Budget Tracker")
 
+        # F12 shortcut
+        QShortcut(QKeySequence("F12"), self, activated=self.open_devtools)
+
+    def open_devtools(self):
+        self.dev_dock.setVisible(not self.dev_dock.isVisible())
+        self.dev_dock.setFeatures(
+            QDockWidget.DockWidgetMovable |
+            QDockWidget.DockWidgetFloatable |
+            QDockWidget.DockWidgetClosable
+        )
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
