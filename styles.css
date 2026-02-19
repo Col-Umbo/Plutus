@@ -1,0 +1,696 @@
+/* ~~~~~~~~~~ Global Styles ~~~~~~~~~~ */
+:root {
+  --bg: #070A12;
+  --panel: rgba(255, 255, 255, .06);
+  --panel-2: rgba(255, 255, 255, .09);
+  --stroke: rgba(255, 255, 255, .10);
+  --text: rgba(255, 255, 255, .92);
+  --muted: rgba(255, 255, 255, .65);
+  --muted-2: rgba(255, 255, 255, .45);
+
+  --a: #7C3AED;
+  /* purple */
+  --b: #22D3EE;
+  /* cyan */
+  --c: #34D399;
+  /* green */
+  --shadow: 0 18px 50px rgba(0, 0, 0, .45);
+
+  --radius-xl: 22px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 10px;
+
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --speed: 260ms;
+
+  --dock-h: 72px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@font-face {
+  font-family: "Sansation";
+  src: url(Sansation/Sansation-Bold.ttf) format("truetype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(1200px 600px at 20% 0%, rgba(79, 70, 229, .25), transparent 55%),
+    radial-gradient(900px 500px at 80% 10%, rgba(34, 197, 94, .18), transparent 60%),
+    var(--bg);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: transparent;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  color: var(--text);
+}
+
+
+
+/* ~~~~~~~~~~ Light Mode Overrides ~~~~~~~~~~ */
+body.light {
+  --bg: #F6F7FB;
+  --panel: rgba(0, 0, 0, .05);
+  --panel-2: rgba(0, 0, 0, .08);
+  --stroke: rgba(0, 0, 0, .10);
+
+  --text: rgba(0, 0, 0, .88);
+  --muted: rgba(0, 0, 0, .62);
+  --muted-2: rgba(0, 0, 0, .45);
+
+  /* accent colors */
+  --shadow: 0 18px 50px rgba(0, 0, 0, .12);
+
+  background:
+    radial-gradient(900px 700px at 10% 10%, rgba(124, 58, 237, .18), transparent 60%),
+    radial-gradient(900px 700px at 90% 20%, rgba(34, 211, 238, .12), transparent 55%),
+    radial-gradient(900px 700px at 70% 95%, rgba(52, 211, 153, .10), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Light mode: make buttons */
+body.light .btn {
+  color: rgba(0, 0, 0, .88);
+  background: rgba(0, 0, 0, .06);
+  border: 1px solid rgba(0, 0, 0, .12);
+}
+
+body.light .btn:hover {
+  background: rgba(0, 0, 0, .10);
+}
+
+body.light .btn.ghost {
+  background: rgba(255, 255, 255, .70);
+  border: 1px solid rgba(0, 0, 0, .12);
+  color: rgba(0, 0, 0, .88);
+}
+
+body.light .btn.ghost:hover {
+  background: rgba(255, 255, 255, .92);
+}
+
+/* Light mode text fixes */
+/* Navbar / top bar text */
+body.light header,
+body.light .topbar,
+body.light .brand h1,
+body.light .brand span {
+  color: rgba(0, 0, 0, .88);
+}
+
+/* Dock navigation labels + icons */
+body.light .dockBtn,
+body.light .dockLabel,
+body.light .dockIcon {
+  color: rgba(0, 0, 0, .85);
+}
+
+/* Active dock button text */
+body.light .dockBtn.active {
+  color: rgba(0, 0, 0, .95);
+}
+
+/* Card titles */
+body.light .cardTitle,
+body.light h2,
+body.light h3 {
+  color: rgba(0, 0, 0, .92);
+}
+
+body.light .noteBox {
+  background: rgba(255, 255, 255, .75);
+  color: rgba(0, 0, 0, .88);
+  border: 1px solid rgba(0, 0, 0, .10);
+}
+
+body.light .noteBox::placeholder {
+  color: rgba(0, 0, 0, .45);
+}
+
+.dockImg {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+
+
+/* ~~~~~~~~~~ Topbar / Header ~~~~~~~~~~ */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(16px);
+  background: linear-gradient(to bottom, rgba(7, 10, 18, .78), rgba(7, 10, 18, .38));
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+}
+
+.topbar {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoContainer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.logo h1 {
+  font-family: "Sansation";
+  src: url("Sansation/Sansation-Bold.ttf") format("truetype");
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: .4px;
+  font-weight: bold;
+  color: green;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.topbarButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .08);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .25);
+  cursor: pointer;
+  transition: transform var(--speed) var(--ease), background var(--speed) var(--ease);
+}
+
+.topbarButtons:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, .07);
+}
+
+.topbarButtons b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+
+
+
+/* ~~~~~~~~~~ Password Overlay Styles ~~~~~~~~~~ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--speed) var(--ease);
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.palette {
+  width: min(760px, 100%);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(18, 20, 34, .82);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .7);
+  overflow: hidden;
+  transform: translateY(10px) scale(.98);
+  opacity: 0;
+  transition: transform var(--speed) var(--ease), opacity var(--speed) var(--ease);
+}
+
+.overlay.open .palette {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.palTop {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+
+
+/* ~~~~~~~~~~ Main Content / Pages Styles ~~~~~~~~~~ */
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 26px 18px calc(110px + var(--dock-h)) 18px;
+}
+
+.contentHeader {
+  margin: auto;
+}
+
+.contentHeader h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+
+.contentHeader p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+}
+
+.card {
+  grid-column: span 12;
+  /* 2 cards per row on desktop */
+  padding: 16px;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, .10);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .03));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+  height: auto;
+  align-self: stretch;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0px;
+}
+
+.card p {
+  margin: 10px 0 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.card h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: rgba(232, 236, 245, .9);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+.row.compact {
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dockLabel {
+    display: none;
+  }
+
+  .dock {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  width: 100%;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, .25);
+  color: var(--text);
+  outline: none;
+}
+
+input[type="color"] {
+  padding: 0;
+  height: 42px;
+}
+
+.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.btn {
+  border: none;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--text);
+  background: rgba(255, 255, 255, .08);
+  transition: transform .05s ease, background .2s ease;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, .12);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.primary {
+  background: rgba(79, 70, 229, .9);
+}
+
+.primary:hover {
+  background: rgba(79, 70, 229, 1);
+}
+
+.danger {
+  background: rgba(239, 68, 68, .85);
+}
+
+.danger:hover {
+  background: rgba(239, 68, 68, 1);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tab {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, .18);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: rgba(255, 255, 255, .10);
+  border-color: rgba(255, 255, 255, .16);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hidden {
+  display: none;
+}
+
+.chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, .16);
+}
+
+.chipLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, .25);
+}
+
+.chipName {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.iconBtn {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.subcard {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(0, 0, 0, .18);
+}
+
+.subrow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.value {
+  font-size: 18px;
+  margin-top: 3px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.chartWrap {
+  width: 100%;
+  min-height: 320px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, .16);
+}
+
+.mt {
+  margin-top: 16px !important;
+}
+
+.totals,
+.items {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.totals li,
+.items li {
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, .16);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+
+
+/* ~~~~~~~~~~ Navbar Tabs ~~~~~~~~~~ */
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+
+
+
+/* ~~~~~~~~~~ Navigation Dock Styles ~~~~~~~~~~ */
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(520px, calc(100vw - 24px));
+  padding: 10px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .10);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, .55);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.dockBtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--dock-h);
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .02);
+  color: rgba(255, 255, 255, .78);
+  cursor: pointer;
+  transition: transform var(--speed) var(--ease), background var(--speed) var(--ease), border var(--speed) var(--ease);
+  user-select: none;
+}
+
+.dockBtn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, .06);
+  border-color: rgba(255, 255, 255, .10);
+}
+
+.dockBtn:hover .btnTip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.dockBtn.active {
+  background: linear-gradient(135deg, rgba(34, 211, 238, .10), rgba(124, 58, 237, .22));
+  border-color: rgba(124, 58, 237, .25);
+  color: rgba(255, 255, 255, .92);
+}
+
+.dockIcon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.dockLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, .72);
+}
+
+.btnTip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--speed) var(--ease), transform var(--speed) var(--ease);
+  background: rgba(0, 0, 0, .72);
+  color: rgba(255, 255, 255, .90);
+  border: 1px solid rgba(255, 255, 255, .10);
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .5);
+  backdrop-filter: blur(10px);
+}
+
+
+
+/* ~~~~~~~~~~ Footer ~~~~~~~~~~ */
+.footer {
+  color: var(--muted);
+  max-width: 1100px;
+  margin: 18px auto;
+  padding: 26px 18px calc(110px + var(--dock-h)) 18px;
+}
