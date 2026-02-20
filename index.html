@@ -15,16 +15,16 @@
 <body>
     <!-- =============== Backend Connection =============== -->
     <script>
-      // This opens the connection with the Python end
-      new QWebChannel(qt.webChannelTransport, function (channel) {
-        window.handler = channel.objects.handler;
-        // Once this connection is established, you can simply call backend methods.
-        // handler.log_expense(10.00, "Rent", false, 0, "", false);
-        // Getting return values from methods requires a little extra work. Call function(return_value) as a parameter, as shown below
-        handler.get_expenses("2-26", function(ret){
-          console.log(ret)
-      });
-    });
+        // This opens the connection with the Python end
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            window.handler = channel.objects.handler;
+            // Once this connection is established, you can simply call backend methods.
+            // handler.log_expense(10.00, "Rent", false, 0, "", false);
+            // Getting return values from methods requires a little extra work. Call function(return_value) as a parameter, as shown below
+            handler.get_expenses("2-26", function (ret) {
+                console.log(ret)
+            });
+        });
     </script>
 
 
@@ -130,25 +130,24 @@
                         <p>What-If features coming soon</p>
                     </section>
                 </div>
-        </div>
-        </article>
+            </article>
 
-        <!-- ~~~~~~~~~~ Goals Page ~~~~~~~~~~ -->
-        <article class="view" id="view-goals" data-title="Goals">
-            <div class="contentHeader">
-                <h1>Goals</h1>
-                <p>Experiment with what-if scenarios to see how it will affect you current finances.</p>
-            </div>
+            <!-- ~~~~~~~~~~ Goals Page ~~~~~~~~~~ -->
+            <article class="view" id="view-goals" data-title="Goals">
+                <div class="contentHeader">
+                    <h1>Goals</h1>
+                    <p>Experiment with what-if scenarios to see how it will affect you current finances.</p>
+                </div>
 
-            <div class="grid">
-                <section class="card">
-                    <div class="cardTop">
-                        <h3>Coming Soon</h3>
-                    </div>
-                    <p>Goals features coming soon</p>
-                </section>
-            </div>
-        </article>
+                <div class="grid">
+                    <section class="card">
+                        <div class="cardTop">
+                            <h3>Coming Soon</h3>
+                        </div>
+                        <p>Goals features coming soon</p>
+                    </section>
+                </div>
+            </article>
 
         </div>
     </main>
@@ -159,46 +158,36 @@
     <nav class="dock" aria-label="Dock Navigation">
         <button class="dockBtn active" data-target="home" type="button" aria-current="page">
             <div class="btnTip">Financial Summary Page</div>
-            <img class="dockIcon" src="Icons/home_dark-mode.png"
-                data-dark="Icons/home_dark-mode.png" 
-                data-light="Icons/home_light-mode.png"
-                alt="home icon" />
+            <img class="dockIcon" src="Icons/home_dark-mode.png" data-dark="Icons/home_dark-mode.png"
+                data-light="Icons/home_light-mode.png" alt="home icon" />
             <div class="dockLabel">Summary</div>
         </button>
 
         <button class="dockBtn" data-target="transactions" type="button">
             <div class="btnTip">Log Transactions</div>
-            <img class="dockIcon" src="Icons/transactions_dark-mode.png" 
-                data-dark="Icons/transactions_dark-mode.png"
-                data-light="Icons/transactions_light-mode.png"
-                alt="transactions icon" />
+            <img class="dockIcon" src="Icons/transactions_dark-mode.png" data-dark="Icons/transactions_dark-mode.png"
+                data-light="Icons/transactions_light-mode.png" alt="transactions icon" />
             <div class="dockLabel">Transactions</div>
         </button>
 
         <button class="dockBtn" data-target="budget" type="button">
             <div class="btnTip">Set Budget</div>
-            <img class="dockIcon" src="Icons/budget_dark-mode.png" 
-                data-dark="Icons/budget_dark-mode.png"
-                data-light="Icons/budget_light-mode.png"
-                alt="transactions icon" />
+            <img class="dockIcon" src="Icons/budget_dark-mode.png" data-dark="Icons/budget_dark-mode.png"
+                data-light="Icons/budget_light-mode.png" alt="transactions icon" />
             <div class="dockLabel">Budget</div>
         </button>
 
         <button class="dockBtn" data-target="whatif" type="button">
             <div class="btnTip">What-If Scenarios</div>
-            <img class="dockIcon" src="Icons/whatif_dark-mode.png" 
-                data-dark="Icons/whatif_dark-mode.png"
-                data-light="Icons/whatif_light-mode.png"
-                alt="transactions icon" />
+            <img class="dockIcon" src="Icons/whatif_dark-mode.png" data-dark="Icons/whatif_dark-mode.png"
+                data-light="Icons/whatif_light-mode.png" alt="transactions icon" />
             <div class="dockLabel">What-If</div>
         </button>
 
         <button class="dockBtn" data-target="goals" type="button">
             <div class="btnTip">Set Goals</div>
-            <img class="dockIcon" src="Icons/goals_dark-mode.png" 
-                data-dark="Icons/goals_dark-mode.png"
-                data-light="Icons/goals_light-mode.png"
-                alt="transactions icon" />
+            <img class="dockIcon" src="Icons/goals_dark-mode.png" data-dark="Icons/goals_dark-mode.png"
+                data-light="Icons/goals_light-mode.png" alt="transactions icon" />
             <div class="dockLabel">Goals</div>
         </button>
     </nav>
