@@ -2,6 +2,7 @@
 class Transaction():
     id : int
     date : str
+    name: str
     amount : float
     transactionType : str
     category : str
