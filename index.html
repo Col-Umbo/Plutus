@@ -19,12 +19,12 @@
       new QWebChannel(qt.webChannelTransport, function (channel) {
         window.handler = channel.objects.handler;
         // Once this connection is established, you can simply call backend methods.
-        handler.send_to_server("hello");
+        // handler.log_expense(10.00, "Rent", false, 0, "", false);
         // Getting return values from methods requires a little extra work. Call function(return_value) as a parameter, as shown below
-        handler.int_test(7, function (ret) {
-          handler.int_test(ret);
-        });
+        handler.get_expenses("2-26", function(ret){
+          console.log(ret)
       });
+    });
     </script>
 
 
@@ -65,7 +65,7 @@
             <article class="view active" id="view-home" data-title="Home">
                 <div class="contentHeader">
                     <h1>Home</h1>
-                    <p>Get an summary and overview of your finances.</p>
+                    <p>Get a summary and overview of your finances.</p>
                 </div>
 
                 <div class="grid">
