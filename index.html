@@ -19,10 +19,10 @@
         new QWebChannel(qt.webChannelTransport, function (channel) {
             window.handler = channel.objects.handler;
             // Once this connection is established, you can simply call backend methods.
-            // handler.log_expense(10.00, "Rent", false, 0, "", false);
+            handler.send_to_server("hello");
             // Getting return values from methods requires a little extra work. Call function(return_value) as a parameter, as shown below
-            handler.get_expenses("2-26", function (ret) {
-                console.log(ret)
+            handler.int_test(7, function (ret) {
+                handler.int_test(ret);
             });
         });
     </script>
@@ -65,7 +65,7 @@
             <article class="view active" id="view-home" data-title="Home">
                 <div class="contentHeader">
                     <h1>Home</h1>
-                    <p>Get a summary and overview of your finances.</p>
+                    <p>Get an summary and overview of your finances.</p>
                 </div>
 
                 <div class="grid">
@@ -84,16 +84,129 @@
             <article class="view" id="view-transactions" data-title="Transactions">
                 <div class="contentHeader">
                     <h1>Transactions</h1>
-                    <p>Log your income and expenses here.</p>
+                    <p>Log income and expenses by category.</p>
                 </div>
 
                 <div class="grid">
-                    <section class="card">
+
+                    <!-- Transaction Totals Card -->
+                    <section class="card tx-top-card">
                         <div class="cardTop">
-                            <h3>Coming Soon</h3>
+                            <h3>Transaction Totals</h3>
                         </div>
-                        <p>Income and Expense logging features coming soon</p>
+
+                        <div class="transactionTotals">
+                            <div class="totals-card income">
+                                <span class="label">Income</span>
+                                <span id="incomeTotal" class="value">$0.00</span>
+                            </div>
+
+                            <div class="totals-card expense">
+                                <span class="label">Expenses</span>
+                                <span id="expenseTotal" class="value">$0.00</span>
+                            </div>
+                        </div>
+
+                        <button id="openAddModal" class="add-btn" aria-label="Add transaction">+</button>
                     </section>
+
+                    <!-- Transaction filters -->
+                    <section class="filters">
+                        <div class="pill-group" role="tablist" aria-label="Transaction filter">
+                            <button class="pill active" data-filter="all">All</button>
+                            <button class="pill" data-filter="income">Income</button>
+                            <button class="pill" data-filter="expense">Expenses</button>
+                        </div>
+
+                        <div class="search">
+                            <input id="searchInput" type="search" placeholder="Search transactions" />
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="list-head">
+                            <span class="col date">Date</span>
+                            <span class="col name">Name</span>
+                            <span class="col category">Category</span>
+                            <span class="col amt">Amount</span>
+                            <span class="col actions">Actions</span>
+                        </div>
+
+                        <ul id="txList" class="tx-list" aria-label="Transaction list"></ul>
+
+                        <div id="emptyState" class="empty">
+                            No transactions yet. Click <strong>+</strong> to add one.
+                        </div>
+                    </section>
+
+                    <!-- Add Transaction Modal-->
+                    <div id="modalBackdrop" class="backdrop hidden" aria-hidden="true">
+                        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+                            <div class="modal-head">
+                                <h2 id="modalTitle">Add Transaction</h2>
+                                <button id="closeModal" class="icon-btn" aria-label="Close">✕</button>
+                            </div>
+
+                            <form id="txForm" class="form">
+                                <div class="row">
+                                    <label>
+                                        Type
+                                        <select id="txType" required>
+                                            <option value="expense">Expense</option>
+                                            <option value="income">Income</option>
+                                        </select>
+                                    </label>
+
+                                    <label>
+                                        Amount
+                                        <input id="txAmount" type="number" inputmode="decimal" step="0.01" min="0"
+                                            placeholder="0.00" required />
+                                    </label>
+                                </div>
+
+                                <div class="row">
+                                    <label>
+                                        Date
+                                        <input id="txDate" type="date" required />
+                                    </label>
+
+                                    <label>
+                                        Category
+                                        <select id="txCategory" required></select>
+                                    </label>
+                                </div>
+
+                                <label>
+                                    Transaction name
+                                    <input id="txName" type="text" placeholder="e.g., Grocery run" maxlength="60"
+                                        required />
+                                </label>
+
+                                <div class="row row-inline">
+                                    <label class="checkbox">
+                                        <input id="txRepeats" type="checkbox" />
+                                        Repeats
+                                    </label>
+
+                                    <label id="repeatEveryWrap" class="hidden">
+                                        Repeat every
+                                        <select id="repeatEvery">
+                                            <option value="weekly">Weekly</option>
+                                            <option value="biweekly">Biweekly</option>
+                                            <option value="monthly" selected>Monthly</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div class="modal-actions">
+                                    <button type="button" id="cancelBtn" class="btn secondary">Cancel</button>
+                                    <button type="submit" class="btn primary">Add</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
                 </div>
             </article>
 
@@ -130,24 +243,25 @@
                         <p>What-If features coming soon</p>
                     </section>
                 </div>
-            </article>
+        </div>
+        </article>
 
-            <!-- ~~~~~~~~~~ Goals Page ~~~~~~~~~~ -->
-            <article class="view" id="view-goals" data-title="Goals">
-                <div class="contentHeader">
-                    <h1>Goals</h1>
-                    <p>Experiment with what-if scenarios to see how it will affect you current finances.</p>
-                </div>
+        <!-- ~~~~~~~~~~ Goals Page ~~~~~~~~~~ -->
+        <article class="view" id="view-goals" data-title="Goals">
+            <div class="contentHeader">
+                <h1>Goals</h1>
+                <p>Experiment with what-if scenarios to see how it will affect you current finances.</p>
+            </div>
 
-                <div class="grid">
-                    <section class="card">
-                        <div class="cardTop">
-                            <h3>Coming Soon</h3>
-                        </div>
-                        <p>Goals features coming soon</p>
-                    </section>
-                </div>
-            </article>
+            <div class="grid">
+                <section class="card">
+                    <div class="cardTop">
+                        <h3>Coming Soon</h3>
+                    </div>
+                    <p>Goals features coming soon</p>
+                </section>
+            </div>
+        </article>
 
         </div>
     </main>

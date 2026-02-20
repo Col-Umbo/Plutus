@@ -1,19 +1,8 @@
-// =============== Utiliites ===============
-
+// =============== Utilities ===============
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-// (dev notes) '$' is being used as a variable to manipulate CSS selectors
-
-const isMac = navigator.platform.toLocaleLowerCase().includes("mac"); // Determine if Mac or PC
-const modKeyEl = $("#modKey");
-if (modKeyEl) modKeyEl.textContent = isMac ? "Cmd" : "Ctrl";
-
-
-
-
 // =============== Views / Routing (Switch between tabs) ===============
-
 const views = {
   home: $("#view-home"),
   transactions: $("#view-transactions"),
@@ -27,13 +16,11 @@ const dockButtons = $$(".dockBtn");
 function setActiveView(key, { push = true } = {}) {
   if (!views[key]) key = "home";
 
-  // Show the correct page
   Object.entries(views).forEach(([k, el]) => {
     if (!el) return;
     el.classList.toggle("active", k === key);
   });
 
-  // Update dock button "active" + aria-current
   dockButtons.forEach((btn) => {
     const isActive = btn.dataset.target === key;
     btn.classList.toggle("active", isActive);
@@ -41,36 +28,25 @@ function setActiveView(key, { push = true } = {}) {
     else btn.removeAttribute("aria-current");
   });
 
-  // Update URL hash
   if (push) history.pushState({ key }, "", `#${key}`);
 }
 
-// Click handlers
 dockButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const target = btn.dataset.target;
-    setActiveView(target);
-  });
+  btn.addEventListener("click", () => setActiveView(btn.dataset.target));
 });
 
-// Back/forward buttons
 window.addEventListener("popstate", (e) => {
   const key = (e.state && e.state.key) || (location.hash || "#home").slice(1);
   setActiveView(key, { push: false });
 });
 
-// Initial route
 const initial = (location.hash || "#home").slice(1);
 history.replaceState({ key: initial }, "", `#${initial}`);
 setActiveView(initial, { push: false });
 
-
-
-
 // =============== Theme toggle (Light/Dark) ===============
-
-const themeToggleBtn = document.getElementById("themeToggleBtn");
-const themeLabel = document.getElementById("themeLabel");
+const themeToggleBtn = $("#themeToggleBtn");
+const themeLabel = $("#themeLabel");
 const THEME_KEY = "theme_preference"; // "light" | "dark"
 
 function updateDockIcons() {
@@ -92,12 +68,10 @@ function getInitialTheme() {
   const saved = localStorage.getItem(THEME_KEY);
   if (saved === "light" || saved === "dark") return saved;
 
-  // fallback to system preference
   const prefersLight = window.matchMedia?.("(prefers-color-scheme: light)")?.matches;
   return prefersLight ? "light" : "dark";
 }
 
-// Initialize
 let currentTheme = getInitialTheme();
 applyTheme(currentTheme);
 
@@ -109,572 +83,379 @@ themeToggleBtn?.addEventListener("click", () => {
 
 document.addEventListener("DOMContentLoaded", updateDockIcons);
 
+// =============== Password Overlay (guarded - not built yet) ===============
+(function initPasswordOverlay() {
+  const overlay = $("#overlay");
+  const passwordBtn = $("#passwordBtn");
+  if (!overlay || !passwordBtn) return;
 
+  const open = () => overlay.classList.add("open");
+  const close = () => overlay.classList.remove("open");
 
-// =============== Password Lock Button Scripts ===============
+  passwordBtn.addEventListener("click", open);
 
-// ~~~~~~~~~~ Popup Overlay ~~~~~~~~~~
-const overlay = $("#overlay");
-const palInput = $("#palInput");
-const palList = $("#palList");
-const palCount = $("#palCount");
-const openPaletteBtn = $("#openPaletteBtn");
-
-const commands = [ // Insert commands later
-];
-
-let filtered = [...commands];
-let activeIndex = 0;
-
-function openPalette() {
-  overlay.classList.add("open");
-  palInput.value = "";
-  filtered = [...commands];
-  activeIndex = 0;
-  renderCommands();
-  setTimeout(() => palInput.focus(), 0);
-}
-
-function closePalette() {
-  overlay.classList.remove("open");
-  palInput.blur();
-}
-
-function renderCommands() {
-  palList.innerHTML = "";
-  filtered.forEach((cmd, idx) => {
-    const row = document.createElement("div");
-    row.className = "item" + (idx === activeIndex ? " active" : "");
-    row.tabIndex = 0;
-    row.dataset.key = cmd.key;
-
-    row.innerHTML = `
-        <div class="badge">${cmd.icon}</div>
-        <div class="meta">
-        <b>${cmd.label}</b>
-        <span>${cmd.hint}</span>
-        </div>
-    `;
-
-    row.addEventListener("click", () => {
-      setActiveView(cmd.key);
-      closePalette();
-    });
-
-    palList.appendChild(row);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
   });
 
-  palCount.textContent = `${filtered.length} command${filtered.length === 1 ? "" : "s"}`;
-
-  // keep selected item visible
-  const active = $(".item.active", palList);
-  if (active) active.scrollIntoView({ block: "nearest" });
-}
-
-function applyFilter(text) {
-  const q = text.trim().toLowerCase();
-  filtered = commands.filter(c =>
-    c.label.toLowerCase().includes(q) ||
-    c.hint.toLowerCase().includes(q) ||
-    c.key.toLowerCase().includes(q)
-  );
-  activeIndex = 0;
-  renderCommands();
-}
-
-palInput.addEventListener("input", (e) => applyFilter(e.target.value));
-
-openPaletteBtn.addEventListener("click", openPalette);
-overlay.addEventListener("click", (e) => {
-  if (e.target === overlay) closePalette();
-});
-
-
-
-// =============== Scripts for Budget Page ===============
-
-// ~~~~~~~~~~ Storage Helpers ~~~~~~~~~~
-const STORAGE_KEY = "categorized_budget_v1";
-
-function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    // seed with a couple defaults
-    return {
-      categories: [
-        { id: crypto.randomUUID(), type: "expense", name: "Bills", color: "#ef4444" },
-        { id: crypto.randomUUID(), type: "expense", name: "Groceries", color: "#f59e0b" },
-        { id: crypto.randomUUID(), type: "income", name: "Paycheck", color: "#22c55e" },
-      ],
-      items: []
-    };
-  }
-  try { return JSON.parse(raw); } catch { return { categories: [], items: [] }; }
-}
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-// ~~~~~~~~~~ State ~~~~~~~~~~
-let state = loadState();
-
-// ~~~~~~~~~~ DOM ~~~~~~~~~~
-const categoryForm = document.getElementById("categoryForm");
-const categoryType = document.getElementById("categoryType");
-const categoryName = document.getElementById("categoryName");
-const categoryColor = document.getElementById("categoryColor");
-
-const expenseCategories = document.getElementById("expenseCategories");
-const incomeCategories = document.getElementById("incomeCategories");
-
-const tabs = Array.from(document.querySelectorAll(".tab"));
-
-const itemForm = document.getElementById("itemForm");
-const itemDesc = document.getElementById("itemDesc");
-const itemAmount = document.getElementById("itemAmount");
-const itemCategory = document.getElementById("itemCategory");
-const itemIsIncome = document.getElementById("itemIsIncome");
-
-const totalsList = document.getElementById("totalsList");
-const itemsList = document.getElementById("itemsList");
-
-const totalIncomeEl = document.getElementById("totalIncome");
-const totalExpensesEl = document.getElementById("totalExpenses");
-const netTotalEl = document.getElementById("netTotal");
-
-const chartMode = document.getElementById("chartMode");
-const clearAllBtn = document.getElementById("clearAll");
-
-// ~~~~~~~~~~ Chart ~~~~~~~~~~
-const ctx = document.getElementById("budgetChart");
-let budgetChart = null;
-
-function ensureChart(labels, data, colors, titleText) {
-  if (budgetChart) {
-    budgetChart.data.labels = labels;
-    budgetChart.data.datasets[0].data = data;
-    budgetChart.data.datasets[0].backgroundColor = colors;
-    budgetChart.options.plugins.title.text = titleText;
-    budgetChart.update();
-    return;
-  }
-
-  budgetChart = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels,
-      datasets: [{
-        data,
-        backgroundColor: colors,
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        title: { display: true, text: titleText },
-        legend: { position: "bottom" },
-        tooltip: {
-          callbacks: {
-            label: (context) => {
-              const val = context.parsed ?? 0;
-              return ` ${context.label}: $${val.toFixed(2)}`;
-            }
-          }
-        }
-      }
-    }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("open")) close();
   });
-}
+})();
 
-// ~~~~~~~~~~ Computations ~~~~~~~~~~
-function getCategoryById(id) {
-  return state.categories.find(c => c.id === id);
-}
+// =============== Transactions Page ===============
+(function initTransactions() {
+  // If transactions view isn't in DOM, do nothing
+  const openAddModalBtn = $("#openAddModal");
+  const modalBackdrop = $("#modalBackdrop");
+  const txForm = $("#txForm");
+  if (!openAddModalBtn || !modalBackdrop || !txForm) return;
 
-function sumByCategory(type) {
-  // type: "expense" | "income"
-  const totals = new Map();
+  const STORAGE_TX = "plutus_transactions_v1";
+  const STORAGE_BUDGET = "categorized_budget_v1"; // Budget page stores categories here
 
-  for (const item of state.items) {
-    const cat = getCategoryById(item.categoryId);
-    if (!cat) continue;
+  // DOM
+  const incomeTotalEl = $("#incomeTotal");
+  const expenseTotalEl = $("#expenseTotal");
+  const txListEl = $("#txList");
+  const emptyStateEl = $("#emptyState");
 
-    //item.sign: +1 for income-like, -1 for expense-like
-    //For "expense" mode, we want only negative items OR categories of expense type
-    if (type === "expense") {
-      if (item.sign !== -1 && cat.type !== "expense") continue;
-    } else {
-      if (item.sign !== 1 && cat.type !== "income") continue;
-    }
+  const closeModalBtn = $("#closeModal");
+  const cancelBtn = $("#cancelBtn");
 
-    const key = cat.id;
-    const prev = totals.get(key) ?? 0;
-    totals.set(key, prev + Math.abs(item.amount));
-  }
+  const txType = $("#txType");
+  const txAmount = $("#txAmount");
+  const txDate = $("#txDate");
+  const txCategory = $("#txCategory");
+  const txName = $("#txName");
+  const txRepeats = $("#txRepeats");
+  const repeatEveryWrap = $("#repeatEveryWrap");
+  const repeatEvery = $("#repeatEvery");
 
-  // Build arrays sorted descending by total
-  const rows = Array.from(totals.entries())
-    .map(([catId, total]) => ({ cat: getCategoryById(catId), total }))
-    .filter(r => r.cat)
-    .sort((a, b) => b.total - a.total);
+  const searchInput = $("#searchInput");
+  const pills = $$(".pill");
 
-  return rows;
-}
+  let currentFilter = "all"; // all | income | expense
 
-function computeTotals() {
-  let income = 0;
-  let expenses = 0;
-
-  for (const item of state.items) {
-    if (item.sign === 1) income += item.amount;
-    if (item.sign === -1) expenses += item.amount;
-  }
-
-  // expenses stored positive numbers but sign indicates direction; keep display positive
-  const expenseAbs = Math.abs(expenses);
-  const net = income - expenseAbs;
-
-  return { income, expenses: expenseAbs, net };
-}
-
-// ~~~~~~~~~~ Render ~~~~~~~~~~
-function renderCategories() {
-  expenseCategories.innerHTML = "";
-  incomeCategories.innerHTML = "";
-
-  const expenses = state.categories.filter(c => c.type === "expense");
-  const incomes = state.categories.filter(c => c.type === "income");
-
-  const makeLi = (cat) => {
-    const li = document.createElement("li");
-    li.className = "chip";
-
-    const left = document.createElement("div");
-    left.className = "chipLeft";
-
-    const swatch = document.createElement("span");
-    swatch.className = "swatch";
-    swatch.style.background = cat.color;
-
-    const name = document.createElement("span");
-    name.className = "chipName";
-    name.textContent = cat.name;
-
-    left.appendChild(swatch);
-    left.appendChild(name);
-
-    const del = document.createElement("button");
-    del.className = "iconBtn";
-    del.type = "button";
-    del.textContent = "Delete";
-    del.addEventListener("click", () => {
-      // remove category AND any items pointing to it
-      state.categories = state.categories.filter(c => c.id !== cat.id);
-      state.items = state.items.filter(it => it.categoryId !== cat.id);
-      saveState();
-      renderAll();
-    });
-
-    li.appendChild(left);
-    li.appendChild(del);
-    return li;
+  const DEFAULT_CATEGORIES = {
+    income: ["Paycheck", "Side Hustle", "Refund", "Gift"],
+    expense: ["Groceries", "Bills", "Subscriptions", "Entertainment", "Gas", "General Needs"],
   };
 
-  expenses.forEach(cat => expenseCategories.appendChild(makeLi(cat)));
-  incomes.forEach(cat => incomeCategories.appendChild(makeLi(cat)));
-}
-
-function renderCategorySelect() {
-  itemCategory.innerHTML = "";
-
-  // Include all categories, but label them
-  const categories = [...state.categories].sort((a, b) => {
-    if (a.type !== b.type) return a.type.localeCompare(b.type);
-    return a.name.localeCompare(b.name);
-  });
-
-  for (const cat of categories) {
-    const opt = document.createElement("option");
-    opt.value = cat.id;
-    opt.textContent = `${cat.type === "income" ? "Income" : "Expense"}: ${cat.name}`;
-    itemCategory.appendChild(opt);
+  function readJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
   }
 
-  // If no categories, disable item form
-  const disabled = categories.length === 0;
-  itemCategory.disabled = disabled;
-}
+  function writeJSON(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
 
-function renderItems() {
-  itemsList.innerHTML = "";
+  function money(n) {
+    const v = Number(n || 0);
+    return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  }
 
-  // newest first
-  const items = [...state.items].sort((a, b) => b.createdAt - a.createdAt);
+  function formatDate(iso) {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
 
-  for (const item of items) {
-    const cat = getCategoryById(item.categoryId);
-    const li = document.createElement("li");
+  function uid() {
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
 
-    const left = document.createElement("div");
-    const title = document.createElement("div");
-    title.textContent = item.desc;
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-    const meta = document.createElement("div");
-    meta.className = "muted";
-    meta.textContent = cat ? `${cat.type.toUpperCase()} • ${cat.name}` : "Unknown category";
+  function normalizeType(raw) {
+    const t = String(raw ?? "").toLowerCase().trim();
+    if (t === "income") return "income";
+    // accept "expense", "expenses", "exp"
+    if (t === "expense" || t === "expenses" || t === "exp") return "expense";
+    return "expense"; // default
+  }
 
-    left.appendChild(title);
-    left.appendChild(meta);
+  function normalizeTx(tx) {
+    // tolerate older/other property names too
+    const type = normalizeType(tx?.type ?? tx?.txType ?? tx?.kind);
 
-    const right = document.createElement("div");
-    right.style.display = "flex";
-    right.style.alignItems = "center";
-    right.style.gap = "10px";
+    return {
+      id: tx?.id ?? uid(),
+      createdAt: Number(tx?.createdAt ?? Date.now()),
+      type,
+      amount: Number(tx?.amount ?? tx?.amt ?? 0).toFixed(2),
+      date: String(tx?.date ?? ""),
+      category: String(tx?.category ?? tx?.cat ?? "Uncategorized"),
+      name: String(tx?.name ?? tx?.txName ?? tx?.title ?? "Transaction"),
+      repeats: Boolean(tx?.repeats),
+      repeatEvery: String(tx?.repeatEvery ?? ""),
+    };
+  }
 
-    const amt = document.createElement("div");
-    const signPrefix = item.sign === 1 ? "+" : "-";
-    amt.textContent = `${signPrefix}$${item.amount.toFixed(2)}`;
-    amt.style.fontWeight = "600";
+  function loadTransactions() {
+    const raw = readJSON(STORAGE_TX, []);
+    if (!Array.isArray(raw)) return [];
 
-    const del = document.createElement("button");
-    del.className = "iconBtn";
-    del.type = "button";
-    del.textContent = "Remove";
-    del.addEventListener("click", () => {
-      state.items = state.items.filter(it => it.id !== item.id);
-      saveState();
-      renderAll();
-    });
+    // normalize everything so filters/search always work
+    const normalized = raw.map(normalizeTx);
 
-    right.appendChild(amt);
-    right.appendChild(del);
+    // optional: write back normalized data once to “fix” old entries permanently
+    writeJSON(STORAGE_TX, normalized);
 
-    li.appendChild(left);
-    li.appendChild(right);
+    return normalized;
+  }
 
-    // add a tiny color hint
-    if (cat) {
-      li.style.borderLeft = `6px solid ${cat.color}`;
+  function saveTransactions(list) {
+    writeJSON(STORAGE_TX, list);
+  }
+
+  function getCategoriesFromBudgetState() {
+    // Budget storage is { categories: [{id,type,name,color,...}], items: [...] }
+    const budgetState = readJSON(STORAGE_BUDGET, null);
+    if (!budgetState?.categories?.length) return DEFAULT_CATEGORIES;
+
+    const income = budgetState.categories
+      .filter((c) => c.type === "income")
+      .map((c) => c.name)
+      .filter(Boolean);
+
+    const expense = budgetState.categories
+      .filter((c) => c.type === "expense")
+      .map((c) => c.name)
+      .filter(Boolean);
+
+    return {
+      income: income.length ? income : DEFAULT_CATEGORIES.income,
+      expense: expense.length ? expense : DEFAULT_CATEGORIES.expense,
+    };
+  }
+
+  function populateCategories() {
+    const cats = getCategoriesFromBudgetState();
+    const type = txType.value;
+    const list = type === "income" ? cats.income : cats.expense;
+
+    txCategory.innerHTML = "";
+    for (const name of list) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      txCategory.appendChild(opt);
+    }
+  }
+
+  function computeTotals(transactions) {
+    let income = 0;
+    let expense = 0;
+    for (const t of transactions) {
+      const amt = Number(t.amount || 0);
+      if (t.type === "income") income += amt;
+      else expense += amt;
+    }
+    return { income, expense };
+  }
+
+  function matchesFilter(t) {
+    if (currentFilter === "all") return true;
+    return t.type === currentFilter;
+  }
+
+  function matchesSearch(t, q) {
+    if (!q) return true;
+    const hay = `${t.name} ${t.category} ${t.type}`.toLowerCase();
+    return hay.includes(q.toLowerCase());
+  }
+
+  function openModal() {
+    modalBackdrop.classList.remove("hidden");
+    modalBackdrop.setAttribute("aria-hidden", "false");
+
+    // default date = today
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    if (!txDate.value) txDate.value = `${yyyy}-${mm}-${dd}`;
+
+    txAmount.focus();
+  }
+
+  function closeModal() {
+    modalBackdrop.classList.add("hidden");
+    modalBackdrop.setAttribute("aria-hidden", "true");
+    txForm.reset();
+    repeatEveryWrap.classList.add("hidden");
+    populateCategories();
+  }
+
+  function deleteTransaction(id) {
+    const list = loadTransactions();
+    const next = list.filter((t) => t.id !== id);
+    saveTransactions(next);
+    render();
+  }
+
+  function render() {
+    const transactions = loadTransactions();
+
+    const totals = computeTotals(transactions);
+    if (incomeTotalEl) incomeTotalEl.textContent = money(totals.income);
+    if (expenseTotalEl) expenseTotalEl.textContent = money(totals.expense);
+
+    const q = (searchInput?.value || "").trim();
+    const filtered = transactions
+      .filter(matchesFilter)
+      .filter((t) => matchesSearch(t, q))
+      .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt - a.createdAt));
+
+    txListEl.innerHTML = "";
+
+    if (emptyStateEl) {
+      emptyStateEl.style.display = filtered.length === 0 ? "block" : "none";
     }
 
-    itemsList.appendChild(li);
-  }
-
-  if (items.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "muted";
-    empty.textContent = "No items yet — add your first budget item above.";
-    empty.style.justifyContent = "flex-start";
-    itemsList.appendChild(empty);
-  }
-}
-
-function renderTotalsAndChart() {
-  const { income, expenses, net } = computeTotals();
-
-  totalIncomeEl.textContent = `$${income.toFixed(2)}`;
-  totalExpensesEl.textContent = `$${expenses.toFixed(2)}`;
-
-  netTotalEl.textContent = `$${net.toFixed(2)}`;
-  netTotalEl.style.color = net >= 0 ? "rgba(34,197,94,1)" : "rgba(239,68,68,1)";
-
-  totalsList.innerHTML = "";
-
-  const mode = chartMode.value;
-
-  if (mode === "net") {
-    const labels = ["Income", "Expenses"];
-    const data = [income, expenses];
-    const colors = ["#22c55e", "#ef4444"];
-    ensureChart(labels, data, colors, "Net Breakdown");
-
-    const rows = [
-      { label: "Income", total: income, color: "#22c55e" },
-      { label: "Expenses", total: expenses, color: "#ef4444" },
-    ];
-
-    for (const r of rows) {
+    for (const t of filtered) {
       const li = document.createElement("li");
-      const left = document.createElement("div");
-      left.style.display = "flex";
-      left.style.alignItems = "center";
-      left.style.gap = "10px";
+      li.className = "tx-item";
 
-      const sw = document.createElement("span");
-      sw.className = "swatch";
-      sw.style.background = r.color;
+      const date = document.createElement("div");
+      date.className = "date muted";
+      date.textContent = formatDate(t.date);
 
       const name = document.createElement("div");
-      name.textContent = r.label;
+      name.className = "name";
+      name.innerHTML = `
+        <div style="font-weight:700">${escapeHtml(t.name)}</div>
+        <div class="muted">${t.repeats ? `Repeats: ${escapeHtml(t.repeatEvery)}` : "One-time"}</div>
+      `;
 
-      left.appendChild(sw);
-      left.appendChild(name);
+      const cat = document.createElement("div");
+      cat.className = "cat";
+      cat.innerHTML = `<span class="badge"><span class="dot"></span>${escapeHtml(t.category)}</span>`;
 
-      const right = document.createElement("div");
-      right.textContent = `$${r.total.toFixed(2)}`;
-      right.style.fontWeight = "600";
+      const amt = document.createElement("div");
+      amt.className = `amount ${t.type}`;
+      amt.textContent = money(Math.abs(Number(t.amount)));
 
-      li.appendChild(left);
-      li.appendChild(right);
-      totalsList.appendChild(li);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const del = document.createElement("button");
+      del.className = "icon-btn";
+      del.type = "button";
+      del.title = "Delete";
+      del.textContent = "🗑";
+      del.addEventListener("click", () => deleteTransaction(t.id));
+
+      actions.appendChild(del);
+
+      const repeat = document.createElement("div");
+      repeat.className = "repeat muted";
+      repeat.textContent = t.repeats ? `Repeats: ${t.repeatEvery}` : "";
+
+      li.append(date, name, cat, amt, actions, repeat);
+      txListEl.appendChild(li);
+    }
+  }
+
+  // Events
+  openAddModalBtn.addEventListener("click", () => {
+    populateCategories();
+    openModal();
+  });
+
+  closeModalBtn?.addEventListener("click", closeModal);
+  cancelBtn?.addEventListener("click", closeModal);
+
+  modalBackdrop.addEventListener("click", (e) => {
+    if (e.target === modalBackdrop) closeModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modalBackdrop.classList.contains("hidden")) closeModal();
+  });
+
+  txType.addEventListener("change", populateCategories);
+
+  txRepeats.addEventListener("change", () => {
+    if (txRepeats.checked) repeatEveryWrap.classList.remove("hidden");
+    else repeatEveryWrap.classList.add("hidden");
+  });
+
+  txForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const amount = Number(txAmount.value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Please enter a valid amount greater than 0.");
+      return;
     }
 
-    return;
-  }
+    const date = txDate.value;
+    const type = txType.value;
+    const category = txCategory.value;
+    const name = txName.value.trim();
 
-  const rows = sumByCategory(mode); // expense or income
-  const labels = rows.map(r => r.cat.name);
-  const data = rows.map(r => r.total);
-  const colors = rows.map(r => r.cat.color);
-
-  const title = mode === "expense" ? "Expenses by Category" : "Income by Category";
-
-  // handle empty chart nicely
-  if (labels.length === 0) {
-    ensureChart(["No data"], [1], ["rgba(255,255,255,.12)"], title);
-  } else {
-    ensureChart(labels, data, colors, title);
-  }
-
-  if (rows.length === 0) {
-    const li = document.createElement("li");
-    li.className = "muted";
-    li.textContent = "No totals yet — add items to see category totals.";
-    li.style.justifyContent = "flex-start";
-    totalsList.appendChild(li);
-    return;
-  }
-
-  for (const r of rows) {
-    const li = document.createElement("li");
-    const left = document.createElement("div");
-    left.style.display = "flex";
-    left.style.alignItems = "center";
-    left.style.gap = "10px";
-
-    const sw = document.createElement("span");
-    sw.className = "swatch";
-    sw.style.background = r.cat.color;
-
-    const name = document.createElement("div");
-    name.textContent = r.cat.name;
-
-    left.appendChild(sw);
-    left.appendChild(name);
-
-    const right = document.createElement("div");
-    right.textContent = `$${r.total.toFixed(2)}`;
-    right.style.fontWeight = "600";
-
-    li.appendChild(left);
-    li.appendChild(right);
-    totalsList.appendChild(li);
-  }
-}
-
-function renderAll() {
-  renderCategories();
-  renderCategorySelect();
-  renderItems();
-  renderTotalsAndChart();
-}
-
-// ~~~~~~~~~~ Events ~~~~~~~~~~
-categoryForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const type = categoryType.value;
-  const name = categoryName.value.trim();
-  const color = categoryColor.value;
-
-  if (!name) return;
-
-  // prevent duplicates per type (case-insensitive)
-  const exists = state.categories.some(c => c.type === type && c.name.toLowerCase() === name.toLowerCase());
-  if (exists) {
-    alert(`A ${type} category named "${name}" already exists.`);
-    return;
-  }
-
-  state.categories.push({
-    id: crypto.randomUUID(),
-    type,
-    name,
-    color
-  });
-
-  categoryName.value = "";
-  saveState();
-  renderAll();
-});
-
-itemForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  if (state.categories.length === 0) {
-    alert("Create a category first.");
-    return;
-  }
-
-  const desc = itemDesc.value.trim();
-  const amt = Number(itemAmount.value);
-
-  if (!desc || !Number.isFinite(amt) || amt <= 0) return;
-
-  const categoryId = itemCategory.value;
-  const cat = getCategoryById(categoryId);
-
-  // sign: income checkbox overrides; otherwise infer from category type
-  const sign = itemIsIncome.checked ? 1 : (cat?.type === "income" ? 1 : -1);
-
-  state.items.push({
-    id: crypto.randomUUID(),
-    desc,
-    amount: Math.round(amt * 100) / 100,
-    categoryId,
-    sign,
-    createdAt: Date.now()
-  });
-
-  itemDesc.value = "";
-  itemAmount.value = "";
-  itemIsIncome.checked = false;
-
-  saveState();
-  renderAll();
-});
-
-chartMode.addEventListener("change", () => {
-  renderTotalsAndChart();
-});
-
-clearAllBtn.addEventListener("click", () => {
-  const ok = confirm("Clear all categories and items?");
-  if (!ok) return;
-
-  state = { categories: [], items: [] };
-  saveState();
-  renderAll();
-});
-
-tabs.forEach(btn => {
-  btn.addEventListener("click", () => {
-    tabs.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-
-    const tab = btn.dataset.tab;
-    if (tab === "expense") {
-      expenseCategories.classList.remove("hidden");
-      incomeCategories.classList.add("hidden");
-    } else {
-      incomeCategories.classList.remove("hidden");
-      expenseCategories.classList.add("hidden");
+    if (!date || !category || !name) {
+      alert("Please fill out all required fields.");
+      return;
     }
-  });
-});
 
-// ~~~~~~~~~~ Init ~~~~~~~~~~
-renderAll();
+    const repeats = txRepeats.checked;
+    const repeatEveryVal = repeats ? repeatEvery.value : "";
+
+    const list = loadTransactions();
+    list.push({
+      id: uid(),
+      createdAt: Date.now(),
+      type,
+      amount: amount.toFixed(2),
+      date,
+      category,
+      name,
+      repeats,
+      repeatEvery: repeatEveryVal,
+    });
+    saveTransactions(list);
+
+    closeModal();
+    render();
+  });
+
+  pills.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      pills.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  searchInput?.addEventListener("input", render);
+
+  // Init
+  populateCategories();
+  render();
+})();
+
+// =============== Budget Page (guarded - not built yet) ===============
+(function initBudgetIfPresent() {
+  // If your budget DOM isn't present (it’s “Coming Soon”), do nothing.
+  const chartCanvas = $("#budgetChart");
+  const categoryForm = $("#categoryForm");
+  const itemForm = $("#itemForm");
+  if (!chartCanvas && !categoryForm && !itemForm) return;
+})();

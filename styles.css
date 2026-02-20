@@ -7,6 +7,10 @@
   --text: rgba(255, 255, 255, .92);
   --muted: rgba(255, 255, 255, .65);
   --muted-2: rgba(255, 255, 255, .45);
+  --border: var(--stroke); 
+  
+  --good: #34cc16;
+  --bad: #fb7185;
 
   --a: #7C3AED;
   /* purple */
@@ -150,9 +154,46 @@ body.light .noteBox::placeholder {
   object-fit: contain;
 }
 
+/* Transactions page specific overrides */
+body.light .backdrop {
+  background: rgba(0, 0, 0, .35);
+}
+
+body.light .modal {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(245, 246, 250, .98));
+  border: 1px solid rgba(0, 0, 0, .10);
+}
+
+body.light .modal-head h2 {
+  color: rgba(0, 0, 0, .92);
+}
+
+body.light label {
+  color: rgba(0, 0, 0, .70);
+}
+
+body.light input,
+body.light select {
+  background: rgba(0, 0, 0, .04);
+  border: 1px solid rgba(0, 0, 0, .12);
+  color: rgba(0, 0, 0, .88);
+}
+
+body.light input:focus,
+body.light select:focus {
+  border-color: rgba(0, 0, 0, .22);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, .06);
+}
+
+body.light .icon-btn {
+  background: rgba(0, 0, 0, .05);
+  border: 1px solid rgba(0, 0, 0, .10);
+  color: rgba(0, 0, 0, .88);
+}
 
 
-/* ~~~~~~~~~~ Topbar / Header ~~~~~~~~~~ */
+
+/* ~~~~~~~~~~ Topbar Styles ~~~~~~~~~~ */
 header {
   position: sticky;
   top: 0;
@@ -227,7 +268,6 @@ header {
 
 
 
-
 /* ~~~~~~~~~~ Password Overlay Styles ~~~~~~~~~~ */
 .overlay {
   position: fixed;
@@ -275,7 +315,7 @@ header {
 
 
 
-/* ~~~~~~~~~~ Main Content / Pages Styles ~~~~~~~~~~ */
+/* ~~~~~~~~~~ Main Content / Page Styles ~~~~~~~~~~ */
 main {
   max-width: 1100px;
   margin: 0 auto;
@@ -479,35 +519,6 @@ input[type="color"] {
   display: none;
 }
 
-.chip {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 10px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: rgba(0, 0, 0, .16);
-}
-
-.chipLeft {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, .25);
-}
-
-.chipName {
-  font-size: 13px;
-  color: var(--text);
-}
-
 .iconBtn {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, .06);
@@ -515,25 +526,6 @@ input[type="color"] {
   border-radius: 10px;
   padding: 6px 8px;
   cursor: pointer;
-}
-
-.subcard {
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
-  background: rgba(0, 0, 0, .18);
-}
-
-.subrow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.label {
-  font-size: 12px;
-  color: var(--muted);
 }
 
 .value {
@@ -585,6 +577,374 @@ input[type="color"] {
 .muted {
   color: var(--muted);
   font-size: 12px;
+}
+
+
+
+/* ~~~~~~~~~~ Transactions Page Styles ~~~~~~~~~~ */
+.transactionTotals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.totals-card {
+  padding: 14px 14px;
+  border-radius: var(--radius2);
+  border: 1px solid rgba(255, 255, 255, .10);
+  background: rgba(0, 0, 0, .14);
+  display: grid;
+  gap: 6px;
+}
+
+.totals-card .label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.totals-card .value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.totals-card.income .value {
+  color: var(--good);
+}
+
+.totals-card.expense .value {
+  color: var(--bad);
+}
+
+.tx-top-card {
+  position: relative;
+}
+
+.add-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+
+  width: 34px;
+  height: 34px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .12);
+  color: var(--text);
+
+  font-size: 18px;
+  line-height: 0;
+
+  cursor: pointer;
+  transition: transform .12s ease, background .12s ease;
+}
+
+.add-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, .18);
+}
+
+.add-btn:active {
+  transform: translateY(0px) scale(.98);
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px;
+}
+
+.pill-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pill.active {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .22);
+}
+
+.search input {
+  width: min(360px, 55vw);
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+  outline: none;
+}
+
+.search input:focus {
+  border-color: rgba(255, 255, 255, .28);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .06);
+}
+
+#view-transactions .filters {
+  grid-column: span 12;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid rgba(255, 255, 255, .10);
+  box-shadow: var(--shadow);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#view-transactions .search {
+  margin-left: auto;
+}
+
+#view-transactions .search input {
+  width: 320px;
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  #view-transactions .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #view-transactions .pill-group {
+    justify-content: flex-start;
+  }
+
+  #view-transactions .search input {
+    width: 100%;
+  }
+}
+
+.list-section {
+  padding: 12px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid rgba(255, 255, 255, .10);
+  box-shadow: var(--shadow);
+}
+
+.list-head {
+  display: grid;
+  grid-template-columns: 120px 1.4fr 1fr 140px 88px;
+  gap: 10px;
+  padding: 10px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .10);
+}
+
+.tx-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.tx-item {
+  display: grid;
+  grid-template-columns: 120px 1.4fr 1fr 140px 88px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 10px;
+  border-radius: var(--radius2);
+  background: rgba(0, 0, 0, .14);
+  border: 1px solid rgba(255, 255, 255, .10);
+}
+
+.tx-item .muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.amount {
+  font-weight: 700;
+  text-align: right;
+}
+
+.amount.income {
+  color: var(--good);
+}
+
+.amount.expense {
+  color: var(--bad);
+}
+
+.empty {
+  padding: 18px 10px 10px;
+  color: var(--muted);
+  text-align: center;
+  display: none;
+}
+
+/* Modal */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.modal {
+  width: min(560px, 100%);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(25, 28, 46, .98), rgba(18, 20, 36, .98));
+  border: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+input,
+select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: rgba(255, 255, 255, .28);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .06);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.row-inline {
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: rgba(255, 255, 255, .18);
+  color: var(--text);
+}
+
+.btn.secondary {
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  .list-head {
+    display: none;
+  }
+
+  .tx-item {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "name amt"
+      "date cat"
+      "repeat actions";
+    gap: 8px 10px;
+  }
+
+  .tx-item .name {
+    grid-area: name;
+  }
+
+  .tx-item .amount {
+    grid-area: amt;
+  }
+
+  .tx-item .date {
+    grid-area: date;
+  }
+
+  .tx-item .cat {
+    grid-area: cat;
+  }
+
+  .tx-item .repeat {
+    grid-area: repeat;
+  }
+
+  .tx-item .actions {
+    grid-area: actions;
+  }
+
+  .amount {
+    text-align: right;
+  }
 }
 
 
