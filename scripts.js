@@ -2,12 +2,14 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+
+
 // =============== Views / Routing (Switch between tabs) ===============
 const views = {
   home: $("#view-home"),
   transactions: $("#view-transactions"),
   budget: $("#view-budget"),
-  whatif: $("#view-whatif"),
+  categories: $("#view-categories"),
   goals: $("#view-goals"),
 };
 
@@ -43,6 +45,8 @@ window.addEventListener("popstate", (e) => {
 const initial = (location.hash || "#home").slice(1);
 history.replaceState({ key: initial }, "", `#${initial}`);
 setActiveView(initial, { push: false });
+
+
 
 // =============== Theme toggle (Light/Dark) ===============
 const themeToggleBtn = $("#themeToggleBtn");
@@ -83,6 +87,8 @@ themeToggleBtn?.addEventListener("click", () => {
 
 document.addEventListener("DOMContentLoaded", updateDockIcons);
 
+
+
 // =============== Password Overlay (guarded - not built yet) ===============
 (function initPasswordOverlay() {
   const overlay = $("#overlay");
@@ -102,6 +108,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     if (e.key === "Escape" && overlay.classList.contains("open")) close();
   });
 })();
+
+
 
 // =============== Transactions Page ===============
 (function initTransactions() {
@@ -243,13 +251,21 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     };
   }
 
+  // Create categories
   function populateCategories() {
-    const cats = getCategoriesFromBudgetState();
-    const type = txType.value;
-    const list = type === "income" ? cats.income : cats.expense;
+    if (!txCategory) return;
 
+    const type = txType.value; // income | expense
     txCategory.innerHTML = "";
-    for (const name of list) {
+
+    const budget = readJSON(STORAGE_BUDGET, null);
+    const fallback = DEFAULT_CATEGORIES[type] || [];
+    const rawList = budget?.[type] ?? fallback;
+
+    for (const item of rawList) {
+      const name = typeof item === "string" ? item : item?.name;
+      if (!name) continue;
+
       const opt = document.createElement("option");
       opt.value = name;
       opt.textContent = name;
@@ -458,4 +474,223 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   const categoryForm = $("#categoryForm");
   const itemForm = $("#itemForm");
   if (!chartCanvas && !categoryForm && !itemForm) return;
+})();
+
+
+
+// =============== Categories Page ===============
+(function initCategories() {
+  const openBtn = $("#openCatModal");
+  const backdrop = $("#catModalBackdrop");
+  const form = $("#catForm");
+  if (!openBtn || !backdrop || !form) return;
+
+  const STORAGE_BUDGET = "categorized_budget_v1"; // shared with Transactions
+
+  // DOM
+  const catIncomeTotalEl = $("#catIncomeTotal");
+  const catExpenseTotalEl = $("#catExpenseTotal");
+  const listEl = $("#catList");
+  const emptyEl = $("#catEmptyState");
+
+  const closeBtn = $("#closeCatModal");
+  const cancelBtn = $("#catCancelBtn");
+
+  const catTypeEl = $("#catType");
+  const catColorEl = $("#catColor");
+  const catNameEl = $("#catName");
+
+  const searchInput = $("#catSearchInput");
+  const pills = $$(".cat-pill");
+
+  let currentFilter = "all"; // all | income | expense
+
+  function readJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeJSON(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function normalizeBudgetShape(budget) {
+    // Accept older format: { income: ["Paycheck"], expense: ["Groceries"] }
+    // Convert to: { income: [{name,color}], expense: [{name,color}] }
+    const out = { income: [], expense: [] };
+
+    for (const type of ["income", "expense"]) {
+      const arr = Array.isArray(budget?.[type]) ? budget[type] : [];
+      out[type] = arr
+        .map((item) => {
+          if (typeof item === "string") return { name: item, color: type === "income" ? "#22c55e" : "#fb7185" };
+          if (item && typeof item === "object" && item.name) return { name: String(item.name), color: String(item.color || "#94a3b8") };
+          return null;
+        })
+        .filter(Boolean);
+    }
+
+    return out;
+  }
+
+  function loadBudget() {
+    const raw = readJSON(STORAGE_BUDGET, null);
+    const normalized = normalizeBudgetShape(raw);
+
+    // Write back once so everything stays consistent going forward
+    writeJSON(STORAGE_BUDGET, normalized);
+
+    return normalized;
+  }
+
+  function openModal() {
+    backdrop.classList.remove("hidden");
+    backdrop.setAttribute("aria-hidden", "false");
+    catNameEl.focus();
+  }
+
+  function closeModal() {
+    backdrop.classList.add("hidden");
+    backdrop.setAttribute("aria-hidden", "true");
+    form.reset();
+  }
+
+  function counts(budget) {
+    return {
+      income: budget.income.length,
+      expense: budget.expense.length,
+    };
+  }
+
+  function matchesFilter(item) {
+    if (currentFilter === "all") return true;
+    return item.type === currentFilter;
+  }
+
+  function matchesSearch(item, q) {
+    if (!q) return true;
+    return item.name.toLowerCase().includes(q.toLowerCase());
+  }
+
+  function removeCategory(type, name) {
+    const budget = loadBudget();
+    budget[type] = budget[type].filter((c) => c.name.toLowerCase() !== name.toLowerCase());
+    writeJSON(STORAGE_BUDGET, budget);
+    render();
+  }
+
+  function render() {
+    const budget = loadBudget();
+    const c = counts(budget);
+
+    if (catIncomeTotalEl) catIncomeTotalEl.textContent = String(c.income);
+    if (catExpenseTotalEl) catExpenseTotalEl.textContent = String(c.expense);
+
+    const q = (searchInput?.value || "").trim();
+
+    // flatten for display
+    const flat = [
+      ...budget.income.map((x) => ({ ...x, type: "income" })),
+      ...budget.expense.map((x) => ({ ...x, type: "expense" })),
+    ];
+
+    const filtered = flat
+      .filter(matchesFilter)
+      .filter((x) => matchesSearch(x, q))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    listEl.innerHTML = "";
+
+    if (emptyEl) emptyEl.style.display = filtered.length === 0 ? "block" : "none";
+
+    for (const item of filtered) {
+      const li = document.createElement("li");
+      li.className = "cat-item";
+
+      const type = document.createElement("div");
+      type.innerHTML = `<span class="cat-type-badge">${item.type === "income" ? "Income" : "Expense"}</span>`;
+
+      const name = document.createElement("div");
+      name.className = "name";
+      name.style.fontWeight = "700";
+      name.textContent = item.name;
+
+      const color = document.createElement("div");
+      color.className = "cat-swatch";
+      color.innerHTML = `<span class="dot" style="background:${item.color}"></span><span class="muted">${item.color}</span>`;
+
+      const actions = document.createElement("div");
+      actions.className = "cat-actions";
+
+      const del = document.createElement("button");
+      del.className = "icon-btn";
+      del.type = "button";
+      del.title = "Delete";
+      del.textContent = "🗑";
+      del.addEventListener("click", () => removeCategory(item.type, item.name));
+
+      actions.appendChild(del);
+      li.append(type, name, color, actions);
+      listEl.appendChild(li);
+    }
+  }
+
+  // Events
+  openBtn.addEventListener("click", openModal);
+
+  closeBtn?.addEventListener("click", closeModal);
+  cancelBtn?.addEventListener("click", closeModal);
+
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !backdrop.classList.contains("hidden")) closeModal();
+  });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const type = catTypeEl.value; // income|expense
+    const name = catNameEl.value.trim();
+    const color = catColorEl.value;
+
+    if (!name) {
+      alert("Please enter a category name.");
+      return;
+    }
+
+    const budget = loadBudget();
+
+    const exists = budget[type].some((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      alert("That category already exists.");
+      return;
+    }
+
+    budget[type].push({ name, color });
+    writeJSON(STORAGE_BUDGET, budget);
+
+    closeModal();
+    render();
+  });
+
+  pills.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      pills.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  searchInput?.addEventListener("input", render);
+
+  // Init
+  render();
 })();

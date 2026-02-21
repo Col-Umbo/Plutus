@@ -58,7 +58,7 @@
 
     <!-- =============== Main Content =============== -->
     <main>
-        <!-- Different pages will be switched via Javascript -->
+        <!-- Pages -->
         <div class="page" id="page">
 
             <!-- ~~~~~~~~~~ Home Page ~~~~~~~~~~ -->
@@ -129,7 +129,7 @@
                             <span class="col name">Name</span>
                             <span class="col category">Category</span>
                             <span class="col amt">Amount</span>
-                            <span class="col actions">Actions</span>
+                            <span class="col act">Actions</span>
                         </div>
 
                         <ul id="txList" class="tx-list" aria-label="Transaction list"></ul>
@@ -228,10 +228,109 @@
 
             </article>
 
-            <!-- ~~~~~~~~~~ What-If Page ~~~~~~~~~~ -->
-            <article class="view" id="view-whatif" data-title="What-If">
+            <!-- ~~~~~~~~~~ Categories Page ~~~~~~~~~~ -->
+            <article class="view" id="view-categories" data-title="Categories">
                 <div class="contentHeader">
-                    <h1>What-If</h1>
+                    <h1>Categories</h1>
+                    <p>Create categories for your budget and to organize transactions.</p>
+                </div>
+
+                <div class="grid">
+                    <!-- Categories Summary Card -->
+                    <section class="card cat-top-card">
+                        <div class="cardTop">
+                            <h3>Category Totals</h3>
+                        </div>
+
+                        <div class="categoryTotals">
+                            <div class="totals-card income">
+                                <span class="label">Income</span>
+                                <span id="catIncomeTotal" class="value">0</span>
+                            </div>
+
+                            <div class="totals-card expense">
+                                <span class="label">Expenses</span>
+                                <span id="catExpenseTotal" class="value">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Add category button -->
+                        <button id="openCatModal" class="add-btn" aria-label="Add category">+</button>
+                    </section>
+
+                    <!-- Category filters -->
+                    <section class="filters">
+                        <div class="pill-group" role="tablist" aria-label="Category filter">
+                            <button class="pill cat-pill active" data-filter="all">All</button>
+                            <button class="pill cat-pill" data-filter="income">Income</button>
+                            <button class="pill cat-pill" data-filter="expense">Expenses</button>
+                        </div>
+
+                        <div class="search">
+                            <input id="catSearchInput" type="search" placeholder="Search categories" />
+                        </div>
+                    </section>
+
+                    <!-- Category list -->
+                    <section class="card">
+                        <div class="list-head cat-head">
+                            <span class="col type">Type</span>
+                            <span class="col name">Name</span>
+                            <span class="col color">Color</span>
+                            <span class="col actions">Actions</span>
+                        </div>
+
+                        <ul id="catList" class="cat-list" aria-label="Category list"></ul>
+
+                        <div id="catEmptyState" class="empty">
+                            No categories yet. Click <strong>+</strong> to add one.
+                        </div>
+                    </section>
+
+                    <!-- Add Category Modal -->
+                    <div id="catModalBackdrop" class="backdrop hidden" aria-hidden="true">
+                        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="catModalTitle">
+                            <div class="modal-head">
+                                <h2 id="catModalTitle">Add Category</h2>
+                                <button id="closeCatModal" class="icon-btn" aria-label="Close">✕</button>
+                            </div>
+
+                            <form id="catForm" class="form">
+                                <div class="row">
+                                    <label>
+                                        Type
+                                        <select id="catType" required>
+                                            <option value="expense">Expense</option>
+                                            <option value="income">Income</option>
+                                        </select>
+                                    </label>
+
+                                    <label>
+                                        Color
+                                        <input id="catColor" type="color" value="#22c55e" />
+                                    </label>
+                                </div>
+
+                                <label>
+                                    Category name
+                                    <input id="catName" type="text" placeholder="e.g., Subscriptions" maxlength="40"
+                                        required />
+                                </label>
+
+                                <div class="modal-actions">
+                                    <button type="button" id="catCancelBtn" class="btn secondary">Cancel</button>
+                                    <button type="submit" class="btn primary">Add</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ~~~~~~~~~~ Goals Page ~~~~~~~~~~ -->
+            <article class="view" id="view-goals" data-title="Goals">
+                <div class="contentHeader">
+                    <h1>Goals</h1>
                     <p>Experiment with what-if scenarios to see how it will affect you current finances.</p>
                 </div>
 
@@ -240,28 +339,10 @@
                         <div class="cardTop">
                             <h3>Coming Soon</h3>
                         </div>
-                        <p>What-If features coming soon</p>
+                        <p>Goals features coming soon</p>
                     </section>
                 </div>
-        </div>
-        </article>
-
-        <!-- ~~~~~~~~~~ Goals Page ~~~~~~~~~~ -->
-        <article class="view" id="view-goals" data-title="Goals">
-            <div class="contentHeader">
-                <h1>Goals</h1>
-                <p>Experiment with what-if scenarios to see how it will affect you current finances.</p>
-            </div>
-
-            <div class="grid">
-                <section class="card">
-                    <div class="cardTop">
-                        <h3>Coming Soon</h3>
-                    </div>
-                    <p>Goals features coming soon</p>
-                </section>
-            </div>
-        </article>
+            </article>
 
         </div>
     </main>
@@ -291,11 +372,11 @@
             <div class="dockLabel">Budget</div>
         </button>
 
-        <button class="dockBtn" data-target="whatif" type="button">
-            <div class="btnTip">What-If Scenarios</div>
-            <img class="dockIcon" src="Icons/whatif_dark-mode.png" data-dark="Icons/whatif_dark-mode.png"
-                data-light="Icons/whatif_light-mode.png" alt="transactions icon" />
-            <div class="dockLabel">What-If</div>
+        <button class="dockBtn" data-target="categories" type="button">
+            <div class="btnTip">Manage Categories</div>
+            <img class="dockIcon" src="Icons/categories_dark-mode.png" data-dark="Icons/categories_dark-mode.png"
+                data-light="Icons/categories_light-mode.png" alt="categories icon" />
+            <div class="dockLabel">Categories</div>
         </button>
 
         <button class="dockBtn" data-target="goals" type="button">
