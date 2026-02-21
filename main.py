@@ -28,7 +28,7 @@ class CallHandler(QObject):
         self.cursor = self.con.cursor()
         # Please note that the database expects all dates to follow the below format. Uncomment and test it if you're unsure what this means.
         # print(datetime.date.today().strftime('%m-%y'))
-        self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'")')
+        self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'", 0.00)')
         self.con.commit()
         #
         income = self.cursor.execute('SELECT * FROM Income')
@@ -73,6 +73,16 @@ class CallHandler(QObject):
     @Slot(result=str)
     def get_income_categories(self):
         return json.dumps([category.__dict__ for category in self.incomeCategories])
+    @Slot(bool, str, float, str)
+    def add_category(self, categoryType, name, amount, color):
+        if categoryType == False:
+            self.cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("'+name+'", '+str(amount)+', "'+color+'")')
+            self.expenseCategories.append(classes.ExpenseCategory(name, amount, color))
+        elif categoryType == True:
+            self.cursor.execute('INSERT INTO IncomeCategories (name, amount, color) VALUES ("'+name+'", '+str(amount)+', "'+color+'")')
+            self.incomeCategories.append(classes.IncomeCategory(name, amount, color))
+        self.con.commit()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()

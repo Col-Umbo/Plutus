@@ -7,23 +7,30 @@
     <title>Plutus</title>
     <link rel="stylesheet" href="styles.css" />
     <script defer src="scripts.js"></script>
-
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
     <!-- =============== Backend Connection =============== -->
+     <!-- Method call examples follow. Delete them once implemented, or else they'll run every time the program is ran. -->
     <script>
         // This opens the connection with the Python end
         new QWebChannel(qt.webChannelTransport, function (channel) {
             window.handler = channel.objects.handler;
             // Once this connection is established, you can simply call backend methods.
-            handler.send_to_server("hello");
             // Getting return values from methods requires a little extra work. Call function(return_value) as a parameter, as shown below
-            handler.int_test(7, function (ret) {
-                handler.int_test(ret);
+            handler.get_expenses("2-26", function (ret){
+                // ret is a JSON dump containing the raw class data in an array. You'll want to iterate over this and present it.
+                console.log(ret);
             });
+            // Expense logging. Format is name, amount, category, recurring, frequency, endDate, credit
+            handler.log_expense("Name", 20.00, "Bills", false, 0, "DD-MM-YY", false);
+            // Income logging is identical, but it lacks the credit boolean.
+            handler.log_income("Name", 250, "Paycheck", false, 0, "DD-MM-YY");
+            // Category creation example (False = Expense, True = Income). Example is commented to avoid SQL exceptions for inserting identical categories
+            // handler.add_category(false, "Rent", 100, "#000000");
         });
     </script>
 
