@@ -28,7 +28,7 @@ class CallHandler(QObject):
         self.cursor = self.con.cursor()
         # Please note that the database expects all dates to follow the below format. Uncomment and test it if you're unsure what this means.
         # print(datetime.date.today().strftime('%m-%y'))
-        self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount, difference, over) VALUES ("'+datetime.date.today().strftime('%m-%y')+'", 0.00, 0.00, False)')
+        self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'")')
         self.con.commit()
         #
         income = self.cursor.execute('SELECT * FROM Income')
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         con = sqlite.connect("plutus.db")
         cursor = con.cursor()
         # Initial DB setup
-        cursor.execute('CREATE TABLE IF NOT EXISTS Budgets (date TEXT PRIMARY KEY, amount FLOAT, difference FLOAT, over BOOL)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS Budgets (date TEXT PRIMARY KEY, amount FLOAT)')
         cursor.execute('CREATE TABLE IF NOT EXISTS ExpenseCategories (name TEXT PRIMARY KEY, amount FLOAT, color TEXT)')
         cursor.execute('CREATE TABLE IF NOT EXISTS IncomeCategories (name TEXT PRIMARY KEY, amount FLOAT, color TEXT)')
         cursor.execute('CREATE TABLE IF NOT EXISTS Income (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, FOREIGN KEY (categoryNAME) REFERENCES IncomeCategories(name))')
