@@ -55,7 +55,8 @@ const THEME_KEY = "theme_preference"; // "light" | "dark"
 
 function updateDockIcons() {
   const isLight = document.body.classList.contains("light");
-  document.querySelectorAll(".dockIcon").forEach((icon) => {
+  document.querySelectorAll(".dockIcon, .tableIcon").forEach((icon) => {
+    const isLight = document.body.classList.contains("light");
     const newSrc = isLight ? icon.dataset.light : icon.dataset.dark;
     if (newSrc) icon.src = newSrc;
   });
@@ -370,10 +371,17 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       actions.className = "actions";
 
       const del = document.createElement("button");
-      del.className = "icon-btn";
+      del.className = "delete-btn";
       del.type = "button";
       del.title = "Delete";
-      del.textContent = "🗑";
+      del.classList.add("delete-btn");
+      del.innerHTML = `
+  <img class="tableIcon"
+       src="Icons/delete_dark-mode.png"
+       data-dark="Icons/delete_dark-mode.png"
+       data-light="Icons/delete_light-mode.png"
+       alt="Delete" />
+`;
       del.addEventListener("click", () => deleteTransaction(t.id));
 
       actions.appendChild(del);
@@ -627,16 +635,22 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       actions.className = "cat-actions";
 
       const del = document.createElement("button");
-      del.className = "icon-btn";
+      del.className = "delete-btn";
       del.type = "button";
       del.title = "Delete";
-      del.textContent = "🗑";
+      del.innerHTML = `
+      <img class="tableIcon"
+        src="Icons/delete_dark-mode.png"
+        data-dark="Icons/delete_dark-mode.png"
+        data-light="Icons/delete_light-mode.png"
+        alt="Delete" />
+      `;
       del.addEventListener("click", () => removeCategory(item.type, item.name));
-
       actions.appendChild(del);
       li.append(type, name, color, actions);
       listEl.appendChild(li);
     }
+    updateDockIcons();
   }
 
   // Events
