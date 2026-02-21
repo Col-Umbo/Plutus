@@ -2,6 +2,7 @@
 class Transaction():
     id : int
     date : str
+    name: str
     amount : float
     transactionType : str
     category : str
@@ -40,6 +41,7 @@ class Income(Transaction):
         self.endDate = endDate
         self.transactionType = "Income"
 class Budget():
+    # Currently unused. Will replace ClassHandler's expenses and income later.
     expenses = [Expense]
     income = [Income]
     def __init__(self):
