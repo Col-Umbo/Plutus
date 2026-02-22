@@ -53,14 +53,12 @@ class CallHandler(QObject):
     def log_expense(self, name, amount, category, recurring, frequency, endDate, credit):
         self.cursor.execute('INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit) VALUES ("'+datetime.date.today().strftime('%d-%m-%y')+'", "'+name+'", '+str(amount)+', "'+category+'", '+str(recurring)+', '+str(frequency)+', "'+endDate+'",'+str(credit)+')')
         self.con.commit()
-        self.expenses.append(classes.Expense(self.expenses[-1].id+1,datetime.date.today().strftime('%d-%m-%y'), amount, category, recurring, frequency, endDate, credit))
-        test = self.cursor.execute('SELECT * FROM Expenses')
-    @Slot(str, float, str, bool, int, str, bool)
+        self.expenses.append(classes.Expense(self.expenses[-1].id+1,datetime.date.today().strftime('%d-%m-%y'), name, amount, category, recurring, frequency, endDate, credit))
+    @Slot(str, float, str, bool, int, str)
     def log_income(self, name, amount, category, recurring, frequency, endDate):
         self.cursor.execute('INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate) VALUES ("'+datetime.date.today().strftime('%d-%m-%y')+'", "'+name+'", '+str(amount)+', "'+category+'", '+str(recurring)+', '+str(frequency)+', "'+endDate+'")')
         self.con.commit()
-        self.income.append(classes.Expense(self.expenses[-1].id+1,datetime.date.today().strftime('%d-%m-%y'), amount, category, recurring, frequency, endDate, credit))
-        test = self.cursor.execute('SELECT * FROM Expenses')
+        self.income.append(classes.Income(self.income[-1].id+1,datetime.date.today().strftime('%d-%m-%y'),name, amount, category, recurring, frequency, endDate))
     @Slot(str, result=str)
     def get_expenses(self, month):
         return json.dumps([expense.__dict__ for expense in self.expenses])
