@@ -363,9 +363,51 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       cat.className = "cat";
       cat.innerHTML = `<span class="badge"><span class="dot"></span>${escapeHtml(t.category)}</span>`;
 
+      // Make the amount turn red if transaction goes over budget
+      const budgetState = (function () {
+        try {
+          const raw = localStorage.getItem("plutus_budget_v1");
+          const s = raw ? JSON.parse(raw) : null;
+          const overall = Math.max(0, Number(s?.overall ?? 0) || 0);
+          const allocations = Array.isArray(s?.allocations) ? s.allocations : [];
+          return {
+            overall,
+            allocations: allocations
+              .map((a) => ({ category: String(a?.category ?? "").trim(), limit: Math.max(0, Number(a?.limit ?? 0) || 0) }))
+              .filter((a) => a.category),
+          };
+        } catch {
+          return { overall: 0, allocations: [] };
+        }
+      })();
+
+      const allocLimitMap = new Map(budgetState.allocations.map((a) => [a.category.toLowerCase(), a.limit]));
+      const spentByCat = new Map();
+
+      for (const tx of transactions) {
+        if (String(tx?.type).toLowerCase() !== "expense") continue;
+        const amt = Math.abs(Number(tx?.amount ?? 0) || 0);
+        const catKey = String(tx?.category ?? "Uncategorized").toLowerCase();
+        if (allocLimitMap.has(catKey)) {
+          spentByCat.set(catKey, (spentByCat.get(catKey) || 0) + amt);
+        }
+      }
+
+      const overspentCats = new Set();
+      for (const [catKey, spent] of spentByCat.entries()) {
+        const limit = allocLimitMap.get(catKey) || 0;
+        if (limit > 0 && spent > limit) overspentCats.add(catKey);
+      }
+
+      // Inside the transaction loop, replace amt creation with:
       const amt = document.createElement("div");
-      amt.className = `amount ${t.type}`;
+      const isOver =
+        String(t.type).toLowerCase() === "expense" &&
+        overspentCats.has(String(t.category || "").toLowerCase());
+
+      amt.className = `amount ${t.type}${isOver ? " over-budget" : ""}`;
       amt.textContent = money(Math.abs(Number(t.amount)));
+      // end
 
       const actions = document.createElement("div");
       actions.className = "actions";
@@ -475,13 +517,447 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   render();
 })();
 
-// =============== Budget Page (guarded - not built yet) ===============
-(function initBudgetIfPresent() {
-  // If your budget DOM isn't present (it’s “Coming Soon”), do nothing.
-  const chartCanvas = $("#budgetChart");
-  const categoryForm = $("#categoryForm");
-  const itemForm = $("#itemForm");
-  if (!chartCanvas && !categoryForm && !itemForm) return;
+
+
+// =============== Budget Page ===============
+(function initBudget() {
+  const pieCanvas = document.querySelector("#budgetPie");
+  const overallForm = document.querySelector("#overallBudgetForm");
+  const overallInput = document.querySelector("#overallBudgetInput");
+  const overallEditBtn = document.querySelector("#overallBudgetEditBtn");
+  const overallStatus = document.querySelector("#budgetOverallStatus");
+  const overallWarn = document.querySelector("#budgetOverallWarn");
+
+  const allocForm = document.querySelector("#allocationForm");
+  const allocCategory = document.querySelector("#allocationCategory");
+  const allocLimit = document.querySelector("#allocationLimit");
+  const allocRemaining = document.querySelector("#allocateRemaining");
+  const allocWarn = document.querySelector("#budgetAllocWarn");
+  const remainingToAllocateEl = document.querySelector("#remainingToAllocate");
+
+  const allocatedEl = document.querySelector("#budgetAllocated");
+  const unallocatedEl = document.querySelector("#budgetUnallocated");
+  const unallocatedSpentEl = document.querySelector("#budgetUnallocatedSpent");
+
+  const listEl = document.querySelector("#budgetList");
+  const emptyEl = document.querySelector("#budgetEmptyState");
+
+  // If budget DOM not present, do nothing.
+  if (!pieCanvas || !overallForm || !allocForm || !listEl) return;
+
+  const STORAGE_TX = "plutus_transactions_v1";
+  const STORAGE_CATEGORIES = "categorized_budget_v1"; // your Categories page storage
+  const STORAGE_BUDGET = "plutus_budget_v1";         // NEW: budget state
+
+  let pieChart = null;
+
+  function readJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  function writeJSON(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+  function money(n) {
+    const num = Number(n || 0);
+    return num.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  }
+  function showWarn(el, msg) {
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideWarn(el) {
+    if (!el) return;
+    el.textContent = "";
+    el.classList.add("hidden");
+  }
+
+  function loadCategories() {
+    // We only allow allocating EXPENSE categories
+    const cats = readJSON(STORAGE_CATEGORIES, { income: [], expense: [] });
+    const expense = Array.isArray(cats?.expense) ? cats.expense : [];
+    // normalize to {name,color}
+    return expense
+      .map((x) => {
+        if (typeof x === "string") return { name: x, color: "#94a3b8" };
+        if (x && typeof x === "object" && x.name) return { name: String(x.name), color: String(x.color || "#94a3b8") };
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  function normalizeBudgetState(state) {
+    const overall = Math.max(0, Number(state?.overall ?? 0) || 0);
+    const allocations = Array.isArray(state?.allocations) ? state.allocations : [];
+    const cleaned = allocations
+      .map((a) => {
+        const category = String(a?.category ?? "").trim();
+        const limit = Math.max(0, Number(a?.limit ?? 0) || 0);
+        if (!category) return null;
+        return { category, limit };
+      })
+      .filter(Boolean);
+
+    // de-dupe by category (case-insensitive), keep first
+    const seen = new Set();
+    const deduped = [];
+    for (const a of cleaned) {
+      const k = a.category.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      deduped.push(a);
+    }
+
+    return { overall, allocations: deduped };
+  }
+
+  function loadBudgetState() {
+    const raw = readJSON(STORAGE_BUDGET, null);
+    const normalized = normalizeBudgetState(raw);
+    writeJSON(STORAGE_BUDGET, normalized);
+    return normalized;
+  }
+
+  function saveBudgetState(next) {
+    const normalized = normalizeBudgetState(next);
+    writeJSON(STORAGE_BUDGET, normalized);
+    // Let other parts of the app know budget changed
+    window.dispatchEvent(new CustomEvent("plutus:budget-updated"));
+  }
+
+  function loadTransactions() {
+    const tx = readJSON(STORAGE_TX, []);
+    return Array.isArray(tx) ? tx : [];
+  }
+
+  function computeSpending(budgetState) {
+    const tx = loadTransactions();
+    const allocMap = new Map(
+      (budgetState.allocations || []).map((a) => [a.category.toLowerCase(), a.limit])
+    );
+
+    const spentByCat = new Map();
+    let unallocatedSpent = 0;
+
+    for (const t of tx) {
+      const type = String(t?.type ?? "").toLowerCase();
+      if (type !== "expense") continue;
+
+      const amt = Math.abs(Number(t?.amount ?? 0) || 0);
+      const cat = String(t?.category ?? "Uncategorized").trim();
+      const key = cat.toLowerCase();
+
+      if (allocMap.has(key)) {
+        spentByCat.set(key, (spentByCat.get(key) || 0) + amt);
+      } else {
+        unallocatedSpent += amt;
+      }
+    }
+
+    return { spentByCat, unallocatedSpent };
+  }
+
+  function allocatedTotal(budgetState) {
+    return (budgetState.allocations || []).reduce((sum, a) => sum + (Number(a.limit) || 0), 0);
+  }
+
+  function remainingToAllocate(budgetState) {
+    return Math.max(0, budgetState.overall - allocatedTotal(budgetState));
+  }
+
+  function rebuildCategorySelect() {
+    const cats = loadCategories();
+    const state = loadBudgetState();
+    const allocated = new Set((state.allocations || []).map((a) => a.category.toLowerCase()));
+
+    allocCategory.innerHTML = "";
+    const available = cats.filter((c) => !allocated.has(c.name.toLowerCase()));
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = available.length ? "Select a category…" : "No available categories";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    allocCategory.appendChild(placeholder);
+
+    for (const c of available) {
+      const opt = document.createElement("option");
+      opt.value = c.name;
+      opt.textContent = c.name;
+      allocCategory.appendChild(opt);
+    }
+  }
+
+  function renderPie(state) {
+    const cats = loadCategories();
+    const colorMap = new Map(cats.map((c) => [c.name.toLowerCase(), c.color]));
+
+    const labels = [];
+    const data = [];
+    const colors = [];
+
+    for (const a of state.allocations) {
+      labels.push(a.category);
+      data.push(a.limit);
+      colors.push(colorMap.get(a.category.toLowerCase()) || "#94a3b8");
+    }
+
+    const unalloc = remainingToAllocate(state);
+    if (unalloc > 0) {
+      labels.push("Unallocated");
+      data.push(unalloc);
+      colors.push("#64748b");
+    }
+
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(pieCanvas.getContext("2d"), {
+      type: "pie",
+      data: { labels, datasets: [{ data, backgroundColor: colors }] },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ${money(ctx.raw)}`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function renderList(state) {
+    const cats = loadCategories();
+    const colorMap = new Map(cats.map((c) => [c.name.toLowerCase(), c.color]));
+    const { spentByCat, unallocatedSpent } = computeSpending(state);
+
+    listEl.innerHTML = "";
+
+    const unallocLimit = remainingToAllocate(state);
+    const allocTotal = allocatedTotal(state);
+
+    if (allocatedEl) allocatedEl.textContent = money(allocTotal);
+    if (unallocatedEl) unallocatedEl.textContent = money(unallocLimit);
+    if (unallocatedSpentEl) unallocatedSpentEl.textContent = money(unallocatedSpent);
+
+    if (remainingToAllocateEl) remainingToAllocateEl.textContent = money(unallocLimit);
+
+    if (emptyEl) emptyEl.style.display = state.allocations.length === 0 ? "block" : "none";
+
+    function makeRow({ name, limit, spent, isUnallocated }) {
+      const remaining = limit - spent;
+      const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
+      const over = spent > limit && limit > 0;
+
+      const li = document.createElement("li");
+      li.className = `budget-row ${over ? "over" : ""}`;
+
+      const nameCell = document.createElement("div");
+      nameCell.className = "budget-name";
+      nameCell.innerHTML = `
+        <div class="budget-title">${name}</div>
+        <div class="budget-bar" aria-hidden="true"><div class="fill"></div></div>
+      `;
+
+      const fill = nameCell.querySelector(".fill");
+      if (fill) {
+        fill.style.width = `${pct}%`;
+        if (!isUnallocated) {
+          fill.style.background = colorMap.get(name.toLowerCase()) || "rgba(34, 197, 94, .75)";
+        }
+      }
+
+      const limitCell = document.createElement("div");
+      limitCell.className = "budget-limit";
+      limitCell.textContent = money(limit);
+
+      const spentCell = document.createElement("div");
+      spentCell.className = "budget-spent";
+      spentCell.textContent = money(spent);
+
+      const remainingCell = document.createElement("div");
+      remainingCell.className = "budget-remaining";
+      remainingCell.textContent = money(Math.max(0, remaining));
+
+      const actCell = document.createElement("div");
+      actCell.className = "actions";
+
+      if (!isUnallocated) {
+        const del = document.createElement("button");
+        del.className = "delete-btn";
+        del.type = "button";
+        del.title = "Remove allocation";
+        del.innerHTML = `
+          <img class="tableIcon"
+               src="Icons/delete_dark-mode.png"
+               data-dark="Icons/delete_dark-mode.png"
+               data-light="Icons/delete_light-mode.png"
+               alt="Delete" />
+        `;
+        del.addEventListener("click", () => {
+          const next = loadBudgetState();
+          next.allocations = next.allocations.filter((a) => a.category.toLowerCase() !== name.toLowerCase());
+          saveBudgetState(next);
+          render();
+        });
+        actCell.appendChild(del);
+      }
+
+      li.append(nameCell, limitCell, spentCell, remainingCell, actCell);
+      listEl.appendChild(li);
+    }
+
+    // Allocations
+    for (const a of state.allocations) {
+      const spent = spentByCat.get(a.category.toLowerCase()) || 0;
+      makeRow({ name: a.category, limit: a.limit, spent, isUnallocated: false });
+    }
+
+    // Unallocated bucket row (tracks spending with categories NOT in allocations)
+    if (state.overall > 0) {
+      makeRow({ name: "Unallocated", limit: unallocLimit, spent: unallocatedSpent, isUnallocated: true });
+    }
+  }
+
+  function render() {
+    hideWarn(overallWarn);
+    hideWarn(allocWarn);
+
+    const state = loadBudgetState();
+
+    // overall UI status
+    if (overallStatus) {
+      overallStatus.textContent = state.overall > 0 ? `Current: ${money(state.overall)}` : "Not set yet";
+    }
+
+    // keep input enabled only when editing / not set
+    if (state.overall > 0 && !overallInput.dataset.editing) {
+      overallInput.value = state.overall.toFixed(2);
+      overallInput.disabled = true;
+    } else {
+      overallInput.disabled = false;
+      if (!overallInput.value && state.overall > 0) overallInput.value = state.overall.toFixed(2);
+    }
+
+    rebuildCategorySelect();
+    renderPie(state);
+    renderList(state);
+
+    // remaining checkbox behavior
+    const rem = remainingToAllocate(state);
+    allocRemaining.disabled = rem <= 0;
+    if (rem <= 0) allocRemaining.checked = false;
+  }
+
+  // Events: Overall Budget save
+  overallForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    hideWarn(overallWarn);
+
+    const val = Math.max(0, Number(overallInput.value || 0));
+    if (!Number.isFinite(val) || val <= 0) {
+      showWarn(overallWarn, "Please enter a valid overall monthly budget greater than 0.");
+      return;
+    }
+
+    const state = loadBudgetState();
+    const allocTotal = allocatedTotal(state);
+
+    if (allocTotal > val) {
+      showWarn(
+        overallWarn,
+        `Your current allocations total ${money(allocTotal)}, which is higher than ${money(val)}. Reduce allocations first.`
+      );
+      return;
+    }
+
+    state.overall = val;
+    saveBudgetState(state);
+
+    overallInput.dataset.editing = "";
+    overallInput.disabled = true;
+
+    render();
+  });
+
+  overallEditBtn?.addEventListener("click", () => {
+    overallInput.dataset.editing = "1";
+    overallInput.disabled = false;
+    overallInput.focus();
+    overallInput.select();
+  });
+
+  // Allocate remaining checkbox
+  allocRemaining.addEventListener("change", () => {
+    const state = loadBudgetState();
+    const rem = remainingToAllocate(state);
+    if (allocRemaining.checked && rem > 0) {
+      allocLimit.value = rem.toFixed(2);
+    }
+  });
+
+  // Add allocation
+  allocForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    hideWarn(allocWarn);
+
+    const state = loadBudgetState();
+    if (state.overall <= 0) {
+      showWarn(allocWarn, "Set your overall monthly budget first.");
+      return;
+    }
+
+    const category = String(allocCategory.value || "").trim();
+    if (!category) {
+      showWarn(allocWarn, "Pick a category.");
+      return;
+    }
+
+    const limit = Math.max(0, Number(allocLimit.value || 0));
+    if (!Number.isFinite(limit) || limit <= 0) {
+      showWarn(allocWarn, "Enter a valid category limit greater than 0.");
+      return;
+    }
+
+    const rem = remainingToAllocate(state);
+    if (limit > rem + 1e-9) {
+      showWarn(
+        allocWarn,
+        `That would exceed your overall budget. Remaining to allocate is ${money(rem)}.`
+      );
+      return;
+    }
+
+    const exists = state.allocations.some((a) => a.category.toLowerCase() === category.toLowerCase());
+    if (exists) {
+      showWarn(allocWarn, "That category is already allocated.");
+      return;
+    }
+
+    state.allocations.push({ category, limit });
+    saveBudgetState(state);
+
+    // reset form bits
+    allocForm.reset();
+    render();
+  });
+
+  // Re-render when other tabs modify things
+  window.addEventListener("storage", (e) => {
+    if ([STORAGE_CATEGORIES, STORAGE_TX, STORAGE_BUDGET].includes(e.key)) {
+      render();
+    }
+  });
+  window.addEventListener("plutus:budget-updated", render);
+
+  // Initial render
+  render();
 })();
 
 
