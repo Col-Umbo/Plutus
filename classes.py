@@ -42,12 +42,11 @@ class Income(Transaction):
         self.transactionType = "Income"
 class Budget():
     # Currently unused. Will replace ClassHandler's expenses and income later.
-    expenses = [Expense]
-    income = [Income]
-    def __init__(self):
-        self.expenses = []
-        self.incom = []
-    def __init__(self,expenses:[Expense],income:[Income]):
+    amount : float
+    expenses : [Expense]
+    income : [Income]
+    def __init__(self,expenses:[Expense],income:[Income], amount:float):
+        self.amount = amount
         self.expenses = expenses
         self.income = income
 

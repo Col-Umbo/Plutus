@@ -6,4 +6,7 @@ Develop backend functions
 Current development requirements:  
 Python packages:  
 Pyside6  
+Pyinstaller
+Sqlite3
+Sqlcipher3
 JavaScript packages:

@@ -222,18 +222,127 @@
             <article class="view" id="view-budget" data-title="Budget">
                 <div class="contentHeader">
                     <h1>Budget</h1>
-                    <p>Set and keep track of your monthly budget</p>
+                    <p>Set an overall monthly budget, allocate it to categories, and track spending.</p>
                 </div>
 
-                <div class="grid">
-                    <section class="card">
+                <div class="grid budget-grid">
+                    <!-- Overall Budget -->
+                    <section class="card budget-overall">
                         <div class="cardTop">
-                            <h3>Coming Soon</h3>
+                            <h3>Overall Monthly Budget</h3>
+                            <span id="budgetOverallStatus" class="muted"></span>
                         </div>
-                        <p>Budget features coming soon</p>
+
+                        <form id="overallBudgetForm" class="form" autocomplete="off">
+                            <div class="row">
+                                <label>
+                                    Monthly budget (spending cap)
+                                    <input id="overallBudgetInput" type="number" inputmode="decimal" step="0.01" min="0"
+                                        placeholder="1000.00" required />
+                                </label>
+
+                                <div class="btnRow">
+                                    <button type="submit" class="btn primary">Save</button>
+                                    <button type="button" id="overallBudgetEditBtn" class="btn ghost">Edit</button>
+                                </div>
+                            </div>
+
+                            <div class="budget-metrics">
+                                <div class="metric">
+                                    <div class="label">Allocated</div>
+                                    <div id="budgetAllocated" class="value">$0.00</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="label">Unallocated (available)</div>
+                                    <div id="budgetUnallocated" class="value">$0.00</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="label">Unallocated spent</div>
+                                    <div id="budgetUnallocatedSpent" class="value">$0.00</div>
+                                </div>
+                            </div>
+
+                            <div id="budgetOverallWarn" class="warn hidden"></div>
+                        </form>
+                    </section>
+
+                    <!-- Allocate to Categories -->
+                    <section class="card budget-allocate">
+                        <div class="cardTop">
+                            <h3>Allocate to Categories</h3>
+                            <span class="muted">Uses Expense categories from Categories tab</span>
+                        </div>
+
+                        <form id="allocationForm" class="form" autocomplete="off">
+                            <div class="row">
+                                <label>
+                                    Category
+                                    <select id="allocationCategory" required></select>
+                                </label>
+
+                                <label>
+                                    Limit
+                                    <input id="allocationLimit" type="number" inputmode="decimal" step="0.01" min="0"
+                                        placeholder="200.00" required />
+                                </label>
+                            </div>
+
+                            <div class="row row-inline">
+                                <label class="checkbox">
+                                    <input id="allocateRemaining" type="checkbox" />
+                                    Allocate remaining unallocated balance
+                                </label>
+
+                                <div class="btnRow">
+                                    <button type="submit" class="btn primary">Add Allocation</button>
+                                </div>
+                            </div>
+
+                            <div class="muted">
+                                Remaining to allocate: <b id="remainingToAllocate">$0.00</b>
+                            </div>
+
+                            <div id="budgetAllocWarn" class="warn hidden"></div>
+                        </form>
+                    </section>
+
+                    <!-- Chart -->
+                    <section class="card budget-chart">
+                        <div class="cardTop">
+                            <h3>Budget Breakdown</h3>
+                        </div>
+
+                        <div class="chartWrap">
+                            <canvas id="budgetPie" width="400" height="400"></canvas>
+                        </div>
+
+                        <p class="muted" style="margin-top:10px">
+                            Pie slices represent your planned allocation. “Unallocated” is the remainder of the overall
+                            budget.
+                        </p>
+                    </section>
+
+                    <!-- Allocated Category List -->
+                    <section class="card budget-list">
+                        <div class="cardTop">
+                            <h3>Allocated Categories</h3>
+                        </div>
+
+                        <div class="list-head budget-head">
+                            <span class="col name">Category</span>
+                            <span class="col limit">Limit</span>
+                            <span class="col spent">Spent</span>
+                            <span class="col remaining">Remaining</span>
+                            <span class="col act">Delete</span>
+                        </div>
+
+                        <ul id="budgetList" class="budget-list-ul" aria-label="Budget categories"></ul>
+
+                        <div id="budgetEmptyState" class="empty" style="display:none;">
+                            No allocations yet. Add a category above to start tracking.
+                        </div>
                     </section>
                 </div>
-
             </article>
 
             <!-- ~~~~~~~~~~ Categories Page ~~~~~~~~~~ -->

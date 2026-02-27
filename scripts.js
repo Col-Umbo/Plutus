@@ -4,121 +4,6 @@ const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 
 
-
-// =============== Back-end Stuff  ===============
-function backendAvailable() {
-  return !!(window.handler && typeof window.handler.get_expenses === "function");
-}
-
-function handlerReady() {
-  return new Promise((resolve) => {
-    if (backendAvailable()) return resolve(window.handler);
-    const t = setInterval(() => {
-      if (backendAvailable()) {
-        clearInterval(t);
-        resolve(window.handler);
-      }
-    }, 25);
-  });
-}
-
-// Convert date format for backend
-function isoToBackendDate(iso) {
-  if (!iso) return "";
-  const [y, m, d] = String(iso).split("-");
-  if (!y || !m || !d) return "";
-  return `${d}-${m}-${y.slice(2)}`;
-}
-
-function backendDateToIso(dmy) {
-  if (!dmy) return "";
-  const parts = String(dmy).split("-");
-  if (parts.length !== 3) return "";
-  const [d, m, y2] = parts;
-  const yyyy = y2.length === 2 ? `20${y2}` : y2;
-  return `${yyyy}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
-
-// Promisified Qt WebChannel calls that use callbacks
-function callBackend(method, ...args) {
-  return handlerReady().then(
-    (h) =>
-      new Promise((resolve) => {
-        h[method](...args, resolve);
-      })
-  );
-}
-
-// Shared caches so Transactions and Categories stay in sync
-window.__plutusDbCache = window.__plutusDbCache || {
-  categories: { income: [], expense: [] },
-  transactions: [],
-};
-
-async function refreshCategoriesFromDb() {
-  if (!backendAvailable()) return window.__plutusDbCache.categories;
-
-  const expenseRaw = await callBackend("get_expense_categories");
-  const incomeRaw = await callBackend("get_income_categories");
-
-  let expense = [];
-  let income = [];
-  try {
-    expense = JSON.parse(expenseRaw || "[]").map((c) => ({ name: c.name, color: c.color, amount: c.amount }));
-    income = JSON.parse(incomeRaw || "[]").map((c) => ({ name: c.name, color: c.color, amount: c.amount }));
-  } catch {
-    expense = [];
-    income = [];
-  }
-
-  window.__plutusDbCache.categories = { income, expense };
-  return window.__plutusDbCache.categories;
-}
-
-async function refreshTransactionsFromDb() {
-  if (!backendAvailable()) return window.__plutusDbCache.transactions;
-
-  const expensesRaw = await callBackend("get_expenses", "ALL");
-  const incomeRaw = await callBackend("get_income", "ALL");
-
-  let expenses = [];
-  let income = [];
-  try {
-    expenses = JSON.parse(expensesRaw || "[]").map((t) => ({
-      id: String(t.id),
-      createdAt: Date.now(),
-      type: "expense",
-      amount: Number(t.amount || 0).toFixed(2),
-      date: backendDateToIso(t.date),
-      category: String(t.categoryName || t.category || "Uncategorized"),
-      name: String(t.name || "Transaction"),
-      repeats: Boolean(t.recurring),
-      repeatEvery: String(t.frequency || ""),
-      _backendId: t.id,
-    }));
-    income = JSON.parse(incomeRaw || "[]").map((t) => ({
-      id: String(t.id),
-      createdAt: Date.now(),
-      type: "income",
-      amount: Number(t.amount || 0).toFixed(2),
-      date: backendDateToIso(t.date),
-      category: String(t.categoryName || t.category || "Uncategorized"),
-      name: String(t.name || "Transaction"),
-      repeats: Boolean(t.recurring),
-      repeatEvery: String(t.frequency || ""),
-      _backendId: t.id,
-    }));
-  } catch {
-    expenses = [];
-    income = [];
-  }
-
-  window.__plutusDbCache.transactions = [...expenses, ...income];
-  return window.__plutusDbCache.transactions;
-}
-
-
-
 // =============== Views / Routing (Switch between tabs) ===============
 const views = {
   home: $("#view-home"),
@@ -261,11 +146,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   let currentFilter = "all"; // all | income | expense
 
-  // DB-backed caches (shared across pages)
-  const dbCache = window.__plutusDbCache;
-  let txCache = dbCache.transactions;
-  let catCache = dbCache.categories;
-
   const DEFAULT_CATEGORIES = {
     income: ["Paycheck", "Side Hustle", "Refund", "Gift"],
     expense: ["Groceries", "Bills", "Subscriptions", "Entertainment", "Gas", "General Needs"],
@@ -281,7 +161,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
 
   function writeJSON(key, value) {
-    if (backendAvailable()) return;
     localStorage.setItem(key, JSON.stringify(value));
   }
 
@@ -335,56 +214,51 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     };
   }
 
-
-  // Save and load transactions
   function loadTransactions() {
-    // If backend is available, use the in-memory DB cache
-    if (backendAvailable()) return Array.isArray(txCache) ? txCache : [];
-
     const raw = readJSON(STORAGE_TX, []);
     if (!Array.isArray(raw)) return [];
 
-    // normalize everything so filters/search (should) always work
+    // normalize everything so filters/search always work
     const normalized = raw.map(normalizeTx);
 
-    // write back normalized data once to “fix” old entries
+    // optional: write back normalized data once to “fix” old entries permanently
     writeJSON(STORAGE_TX, normalized);
 
     return normalized;
   }
 
   function saveTransactions(list) {
-    if (backendAvailable()) {
-      txCache = Array.isArray(list) ? list : [];
-      dbCache.transactions = txCache;
-      return;
-    }
     writeJSON(STORAGE_TX, list);
   }
 
-  // Create categories in the transaction modal dropdown
+  function getCategoriesFromBudgetState() {
+    // Budget storage is { categories: [{id,type,name,color,...}], items: [...] }
+    const budgetState = readJSON(STORAGE_BUDGET, null);
+    if (!budgetState?.categories?.length) return DEFAULT_CATEGORIES;
+
+    const income = budgetState.categories
+      .filter((c) => c.type === "income")
+      .map((c) => c.name)
+      .filter(Boolean);
+
+    const expense = budgetState.categories
+      .filter((c) => c.type === "expense")
+      .map((c) => c.name)
+      .filter(Boolean);
+
+    return {
+      income: income.length ? income : DEFAULT_CATEGORIES.income,
+      expense: expense.length ? expense : DEFAULT_CATEGORIES.expense,
+    };
+  }
+
+  // Create categories
   function populateCategories() {
     if (!txCategory) return;
 
     const type = txType.value; // income | expense
     txCategory.innerHTML = "";
 
-    // Backend mode: use DB categories cache
-    if (backendAvailable()) {
-      const list = (catCache && catCache[type]) ? catCache[type] : [];
-      const names = list.length ? list.map((c) => c.name) : (DEFAULT_CATEGORIES[type] || []);
-
-      for (const name of names) {
-        if (!name) continue;
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        txCategory.appendChild(opt);
-      }
-      return;
-    }
-
-    // Fallback (for browser-only): read categories from localStorage budget state
     const budget = readJSON(STORAGE_BUDGET, null);
     const fallback = DEFAULT_CATEGORIES[type] || [];
     const rawList = budget?.[type] ?? fallback;
@@ -400,7 +274,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     }
   }
 
-  // Compute totals for expenses and income sections in Transactions page
   function computeTotals(transactions) {
     let income = 0;
     let expense = 0;
@@ -412,7 +285,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return { income, expense };
   }
 
-  // Filter scripts
   function matchesFilter(t) {
     if (currentFilter === "all") return true;
     return t.type === currentFilter;
@@ -446,24 +318,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     populateCategories();
   }
 
-  // Delete transaction from modal and databse when user presses the delete icon
-  async function deleteTransaction(id) {
-    if (backendAvailable()) {
-      const t = (txCache || []).find((x) => String(x.id) === String(id));
-      if (t) {
-        const h = await handlerReady();
-        if (t.type === "income" && typeof h.delete_income === "function") {
-          h.delete_income(parseInt(t._backendId ?? t.id, 10));
-        } else if (t.type === "expense" && typeof h.delete_expense === "function") {
-          h.delete_expense(parseInt(t._backendId ?? t.id, 10));
-        }
-      }
-      txCache = await refreshTransactionsFromDb();
-      dbCache.transactions = txCache;
-      render();
-      return;
-    }
-
+  function deleteTransaction(id) {
     const list = loadTransactions();
     const next = list.filter((t) => t.id !== id);
     saveTransactions(next);
@@ -508,9 +363,51 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       cat.className = "cat";
       cat.innerHTML = `<span class="badge"><span class="dot"></span>${escapeHtml(t.category)}</span>`;
 
+      // Make the amount turn red if transaction goes over budget
+      const budgetState = (function () {
+        try {
+          const raw = localStorage.getItem("plutus_budget_v1");
+          const s = raw ? JSON.parse(raw) : null;
+          const overall = Math.max(0, Number(s?.overall ?? 0) || 0);
+          const allocations = Array.isArray(s?.allocations) ? s.allocations : [];
+          return {
+            overall,
+            allocations: allocations
+              .map((a) => ({ category: String(a?.category ?? "").trim(), limit: Math.max(0, Number(a?.limit ?? 0) || 0) }))
+              .filter((a) => a.category),
+          };
+        } catch {
+          return { overall: 0, allocations: [] };
+        }
+      })();
+
+      const allocLimitMap = new Map(budgetState.allocations.map((a) => [a.category.toLowerCase(), a.limit]));
+      const spentByCat = new Map();
+
+      for (const tx of transactions) {
+        if (String(tx?.type).toLowerCase() !== "expense") continue;
+        const amt = Math.abs(Number(tx?.amount ?? 0) || 0);
+        const catKey = String(tx?.category ?? "Uncategorized").toLowerCase();
+        if (allocLimitMap.has(catKey)) {
+          spentByCat.set(catKey, (spentByCat.get(catKey) || 0) + amt);
+        }
+      }
+
+      const overspentCats = new Set();
+      for (const [catKey, spent] of spentByCat.entries()) {
+        const limit = allocLimitMap.get(catKey) || 0;
+        if (limit > 0 && spent > limit) overspentCats.add(catKey);
+      }
+
+      // Inside the transaction loop, replace amt creation with:
       const amt = document.createElement("div");
-      amt.className = `amount ${t.type}`;
+      const isOver =
+        String(t.type).toLowerCase() === "expense" &&
+        overspentCats.has(String(t.category || "").toLowerCase());
+
+      amt.className = `amount ${t.type}${isOver ? " over-budget" : ""}`;
       amt.textContent = money(Math.abs(Number(t.amount)));
+      // end
 
       const actions = document.createElement("div");
       actions.className = "actions";
@@ -564,7 +461,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     else repeatEveryWrap.classList.add("hidden");
   });
 
-  txForm.addEventListener("submit", async (e) => {
+  txForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
     const amount = Number(txAmount.value);
@@ -578,7 +475,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const category = txCategory.value;
     const name = txName.value.trim();
 
-    // all fields need to be filled out
     if (!date || !category || !name) {
       alert("Please fill out all required fields.");
       return;
@@ -616,39 +512,452 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   searchInput?.addEventListener("input", render);
 
-  // When categories change on the Categories page, refresh dropdown + re-render
-  window.addEventListener("plutus:categories-updated", async () => {
-    if (!backendAvailable()) return;
-    catCache = await refreshCategoriesFromDb();
-    dbCache.categories = catCache;
-    populateCategories();
-    render();
-  });
-
   // Init
-  (async function init() {
-    if (backendAvailable()) {
-      // Pull fresh DB state once on load
-      catCache = await refreshCategoriesFromDb();
-      dbCache.categories = catCache;
-      txCache = await refreshTransactionsFromDb();
-      dbCache.transactions = txCache;
-    }
-    populateCategories();
-    render();
-  })();
+  populateCategories();
+  render();
 })();
 
 
 
+// =============== Budget Page ===============
+(function initBudget() {
+  const pieCanvas = document.querySelector("#budgetPie");
+  const overallForm = document.querySelector("#overallBudgetForm");
+  const overallInput = document.querySelector("#overallBudgetInput");
+  const overallEditBtn = document.querySelector("#overallBudgetEditBtn");
+  const overallStatus = document.querySelector("#budgetOverallStatus");
+  const overallWarn = document.querySelector("#budgetOverallWarn");
 
-// =============== Budget Page (guarded - not built yet) ===============
-(function initBudgetIfPresent() {
-  // If your budget DOM isn't present (it’s “Coming Soon”), do nothing.
-  const chartCanvas = $("#budgetChart");
-  const categoryForm = $("#categoryForm");
-  const itemForm = $("#itemForm");
-  if (!chartCanvas && !categoryForm && !itemForm) return;
+  const allocForm = document.querySelector("#allocationForm");
+  const allocCategory = document.querySelector("#allocationCategory");
+  const allocLimit = document.querySelector("#allocationLimit");
+  const allocRemaining = document.querySelector("#allocateRemaining");
+  const allocWarn = document.querySelector("#budgetAllocWarn");
+  const remainingToAllocateEl = document.querySelector("#remainingToAllocate");
+
+  const allocatedEl = document.querySelector("#budgetAllocated");
+  const unallocatedEl = document.querySelector("#budgetUnallocated");
+  const unallocatedSpentEl = document.querySelector("#budgetUnallocatedSpent");
+
+  const listEl = document.querySelector("#budgetList");
+  const emptyEl = document.querySelector("#budgetEmptyState");
+
+  // If budget DOM not present, do nothing.
+  if (!pieCanvas || !overallForm || !allocForm || !listEl) return;
+
+  const STORAGE_TX = "plutus_transactions_v1";
+  const STORAGE_CATEGORIES = "categorized_budget_v1"; // your Categories page storage
+  const STORAGE_BUDGET = "plutus_budget_v1";         // NEW: budget state
+
+  let pieChart = null;
+
+  function readJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  function writeJSON(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+  function money(n) {
+    const num = Number(n || 0);
+    return num.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  }
+  function showWarn(el, msg) {
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideWarn(el) {
+    if (!el) return;
+    el.textContent = "";
+    el.classList.add("hidden");
+  }
+
+  function loadCategories() {
+    // We only allow allocating EXPENSE categories
+    const cats = readJSON(STORAGE_CATEGORIES, { income: [], expense: [] });
+    const expense = Array.isArray(cats?.expense) ? cats.expense : [];
+    // normalize to {name,color}
+    return expense
+      .map((x) => {
+        if (typeof x === "string") return { name: x, color: "#94a3b8" };
+        if (x && typeof x === "object" && x.name) return { name: String(x.name), color: String(x.color || "#94a3b8") };
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  function normalizeBudgetState(state) {
+    const overall = Math.max(0, Number(state?.overall ?? 0) || 0);
+    const allocations = Array.isArray(state?.allocations) ? state.allocations : [];
+    const cleaned = allocations
+      .map((a) => {
+        const category = String(a?.category ?? "").trim();
+        const limit = Math.max(0, Number(a?.limit ?? 0) || 0);
+        if (!category) return null;
+        return { category, limit };
+      })
+      .filter(Boolean);
+
+    // de-dupe by category (case-insensitive), keep first
+    const seen = new Set();
+    const deduped = [];
+    for (const a of cleaned) {
+      const k = a.category.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      deduped.push(a);
+    }
+
+    return { overall, allocations: deduped };
+  }
+
+  function loadBudgetState() {
+    const raw = readJSON(STORAGE_BUDGET, null);
+    const normalized = normalizeBudgetState(raw);
+    writeJSON(STORAGE_BUDGET, normalized);
+    return normalized;
+  }
+
+  function saveBudgetState(next) {
+    const normalized = normalizeBudgetState(next);
+    writeJSON(STORAGE_BUDGET, normalized);
+    // Let other parts of the app know budget changed
+    window.dispatchEvent(new CustomEvent("plutus:budget-updated"));
+  }
+
+  function loadTransactions() {
+    const tx = readJSON(STORAGE_TX, []);
+    return Array.isArray(tx) ? tx : [];
+  }
+
+  function computeSpending(budgetState) {
+    const tx = loadTransactions();
+    const allocMap = new Map(
+      (budgetState.allocations || []).map((a) => [a.category.toLowerCase(), a.limit])
+    );
+
+    const spentByCat = new Map();
+    let unallocatedSpent = 0;
+
+    for (const t of tx) {
+      const type = String(t?.type ?? "").toLowerCase();
+      if (type !== "expense") continue;
+
+      const amt = Math.abs(Number(t?.amount ?? 0) || 0);
+      const cat = String(t?.category ?? "Uncategorized").trim();
+      const key = cat.toLowerCase();
+
+      if (allocMap.has(key)) {
+        spentByCat.set(key, (spentByCat.get(key) || 0) + amt);
+      } else {
+        unallocatedSpent += amt;
+      }
+    }
+
+    return { spentByCat, unallocatedSpent };
+  }
+
+  function allocatedTotal(budgetState) {
+    return (budgetState.allocations || []).reduce((sum, a) => sum + (Number(a.limit) || 0), 0);
+  }
+
+  function remainingToAllocate(budgetState) {
+    return Math.max(0, budgetState.overall - allocatedTotal(budgetState));
+  }
+
+  function rebuildCategorySelect() {
+    const cats = loadCategories();
+    const state = loadBudgetState();
+    const allocated = new Set((state.allocations || []).map((a) => a.category.toLowerCase()));
+
+    allocCategory.innerHTML = "";
+    const available = cats.filter((c) => !allocated.has(c.name.toLowerCase()));
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = available.length ? "Select a category…" : "No available categories";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    allocCategory.appendChild(placeholder);
+
+    for (const c of available) {
+      const opt = document.createElement("option");
+      opt.value = c.name;
+      opt.textContent = c.name;
+      allocCategory.appendChild(opt);
+    }
+  }
+
+  function renderPie(state) {
+    const cats = loadCategories();
+    const colorMap = new Map(cats.map((c) => [c.name.toLowerCase(), c.color]));
+
+    const labels = [];
+    const data = [];
+    const colors = [];
+
+    for (const a of state.allocations) {
+      labels.push(a.category);
+      data.push(a.limit);
+      colors.push(colorMap.get(a.category.toLowerCase()) || "#94a3b8");
+    }
+
+    const unalloc = remainingToAllocate(state);
+    if (unalloc > 0) {
+      labels.push("Unallocated");
+      data.push(unalloc);
+      colors.push("#64748b");
+    }
+
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(pieCanvas.getContext("2d"), {
+      type: "pie",
+      data: { labels, datasets: [{ data, backgroundColor: colors }] },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ${money(ctx.raw)}`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function renderList(state) {
+    const cats = loadCategories();
+    const colorMap = new Map(cats.map((c) => [c.name.toLowerCase(), c.color]));
+    const { spentByCat, unallocatedSpent } = computeSpending(state);
+
+    listEl.innerHTML = "";
+
+    const unallocLimit = remainingToAllocate(state);
+    const allocTotal = allocatedTotal(state);
+
+    if (allocatedEl) allocatedEl.textContent = money(allocTotal);
+    if (unallocatedEl) unallocatedEl.textContent = money(unallocLimit);
+    if (unallocatedSpentEl) unallocatedSpentEl.textContent = money(unallocatedSpent);
+
+    if (remainingToAllocateEl) remainingToAllocateEl.textContent = money(unallocLimit);
+
+    if (emptyEl) emptyEl.style.display = state.allocations.length === 0 ? "block" : "none";
+
+    function makeRow({ name, limit, spent, isUnallocated }) {
+      const remaining = limit - spent;
+      const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
+      const over = spent > limit && limit > 0;
+
+      const li = document.createElement("li");
+      li.className = `budget-row ${over ? "over" : ""}`;
+
+      const nameCell = document.createElement("div");
+      nameCell.className = "budget-name";
+      nameCell.innerHTML = `
+        <div class="budget-title">${name}</div>
+        <div class="budget-bar" aria-hidden="true"><div class="fill"></div></div>
+      `;
+
+      const fill = nameCell.querySelector(".fill");
+      if (fill) {
+        fill.style.width = `${pct}%`;
+        if (!isUnallocated) {
+          fill.style.background = colorMap.get(name.toLowerCase()) || "rgba(34, 197, 94, .75)";
+        }
+      }
+
+      const limitCell = document.createElement("div");
+      limitCell.className = "budget-limit";
+      limitCell.textContent = money(limit);
+
+      const spentCell = document.createElement("div");
+      spentCell.className = "budget-spent";
+      spentCell.textContent = money(spent);
+
+      const remainingCell = document.createElement("div");
+      remainingCell.className = "budget-remaining";
+      remainingCell.textContent = money(Math.max(0, remaining));
+
+      const actCell = document.createElement("div");
+      actCell.className = "actions";
+
+      if (!isUnallocated) {
+        const del = document.createElement("button");
+        del.className = "delete-btn";
+        del.type = "button";
+        del.title = "Remove allocation";
+        del.innerHTML = `
+          <img class="tableIcon"
+               src="Icons/delete_dark-mode.png"
+               data-dark="Icons/delete_dark-mode.png"
+               data-light="Icons/delete_light-mode.png"
+               alt="Delete" />
+        `;
+        del.addEventListener("click", () => {
+          const next = loadBudgetState();
+          next.allocations = next.allocations.filter((a) => a.category.toLowerCase() !== name.toLowerCase());
+          saveBudgetState(next);
+          render();
+        });
+        actCell.appendChild(del);
+      }
+
+      li.append(nameCell, limitCell, spentCell, remainingCell, actCell);
+      listEl.appendChild(li);
+    }
+
+    // Allocations
+    for (const a of state.allocations) {
+      const spent = spentByCat.get(a.category.toLowerCase()) || 0;
+      makeRow({ name: a.category, limit: a.limit, spent, isUnallocated: false });
+    }
+
+    // Unallocated bucket row (tracks spending with categories NOT in allocations)
+    if (state.overall > 0) {
+      makeRow({ name: "Unallocated", limit: unallocLimit, spent: unallocatedSpent, isUnallocated: true });
+    }
+  }
+
+  function render() {
+    hideWarn(overallWarn);
+    hideWarn(allocWarn);
+
+    const state = loadBudgetState();
+
+    // overall UI status
+    if (overallStatus) {
+      overallStatus.textContent = state.overall > 0 ? `Current: ${money(state.overall)}` : "Not set yet";
+    }
+
+    // keep input enabled only when editing / not set
+    if (state.overall > 0 && !overallInput.dataset.editing) {
+      overallInput.value = state.overall.toFixed(2);
+      overallInput.disabled = true;
+    } else {
+      overallInput.disabled = false;
+      if (!overallInput.value && state.overall > 0) overallInput.value = state.overall.toFixed(2);
+    }
+
+    rebuildCategorySelect();
+    renderPie(state);
+    renderList(state);
+
+    // remaining checkbox behavior
+    const rem = remainingToAllocate(state);
+    allocRemaining.disabled = rem <= 0;
+    if (rem <= 0) allocRemaining.checked = false;
+  }
+
+  // Events: Overall Budget save
+  overallForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    hideWarn(overallWarn);
+
+    const val = Math.max(0, Number(overallInput.value || 0));
+    if (!Number.isFinite(val) || val <= 0) {
+      showWarn(overallWarn, "Please enter a valid overall monthly budget greater than 0.");
+      return;
+    }
+
+    const state = loadBudgetState();
+    const allocTotal = allocatedTotal(state);
+
+    if (allocTotal > val) {
+      showWarn(
+        overallWarn,
+        `Your current allocations total ${money(allocTotal)}, which is higher than ${money(val)}. Reduce allocations first.`
+      );
+      return;
+    }
+
+    state.overall = val;
+    saveBudgetState(state);
+
+    overallInput.dataset.editing = "";
+    overallInput.disabled = true;
+
+    render();
+  });
+
+  overallEditBtn?.addEventListener("click", () => {
+    overallInput.dataset.editing = "1";
+    overallInput.disabled = false;
+    overallInput.focus();
+    overallInput.select();
+  });
+
+  // Allocate remaining checkbox
+  allocRemaining.addEventListener("change", () => {
+    const state = loadBudgetState();
+    const rem = remainingToAllocate(state);
+    if (allocRemaining.checked && rem > 0) {
+      allocLimit.value = rem.toFixed(2);
+    }
+  });
+
+  // Add allocation
+  allocForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    hideWarn(allocWarn);
+
+    const state = loadBudgetState();
+    if (state.overall <= 0) {
+      showWarn(allocWarn, "Set your overall monthly budget first.");
+      return;
+    }
+
+    const category = String(allocCategory.value || "").trim();
+    if (!category) {
+      showWarn(allocWarn, "Pick a category.");
+      return;
+    }
+
+    const limit = Math.max(0, Number(allocLimit.value || 0));
+    if (!Number.isFinite(limit) || limit <= 0) {
+      showWarn(allocWarn, "Enter a valid category limit greater than 0.");
+      return;
+    }
+
+    const rem = remainingToAllocate(state);
+    if (limit > rem + 1e-9) {
+      showWarn(
+        allocWarn,
+        `That would exceed your overall budget. Remaining to allocate is ${money(rem)}.`
+      );
+      return;
+    }
+
+    const exists = state.allocations.some((a) => a.category.toLowerCase() === category.toLowerCase());
+    if (exists) {
+      showWarn(allocWarn, "That category is already allocated.");
+      return;
+    }
+
+    state.allocations.push({ category, limit });
+    saveBudgetState(state);
+
+    // reset form bits
+    allocForm.reset();
+    render();
+  });
+
+  // Re-render when other tabs modify things
+  window.addEventListener("storage", (e) => {
+    if ([STORAGE_CATEGORIES, STORAGE_TX, STORAGE_BUDGET].includes(e.key)) {
+      render();
+    }
+  });
+  window.addEventListener("plutus:budget-updated", render);
+
+  // Initial render
+  render();
 })();
 
 
@@ -678,12 +987,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   const searchInput = $("#catSearchInput");
   const pills = $$(".cat-pill");
 
-  let currentFilter = "all"; // all --> income & expense standard
-
-  // DB-backed caches (shared across pages)
-  const dbCache = window.__plutusDbCache;
-  let txCache = dbCache.transactions;
-  let catCache = dbCache.categories;
+  let currentFilter = "all"; // all | income | expense
 
   function readJSON(key, fallback) {
     try {
@@ -718,16 +1022,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
 
   function loadBudget() {
-    if (backendAvailable()) {
-      // Keep the same shape the UI expects: { income:[{name,color}], expense:[{name,color}] }
-      const income = Array.isArray(catCache?.income) ? catCache.income.map((c) => ({ name: c.name, color: c.color })) : [];
-      const expense = Array.isArray(catCache?.expense) ? catCache.expense.map((c) => ({ name: c.name, color: c.color })) : [];
-      return {
-        income: income.length ? income : [{ name: "Paycheck", color: "#22c55e" }],
-        expense: expense.length ? expense : [{ name: "Groceries", color: "#fb7185" }],
-      };
-    }
-
     const raw = readJSON(STORAGE_BUDGET, null);
     const normalized = normalizeBudgetShape(raw);
 
@@ -766,23 +1060,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return item.name.toLowerCase().includes(q.toLowerCase());
   }
 
-  async function removeCategory(type, name) {
-    if (backendAvailable()) {
-      const h = await handlerReady();
-      const isIncome = type === "income";
-      if (typeof h.delete_category === "function") {
-        h.delete_category(isIncome, name);
-      }
-      catCache = await refreshCategoriesFromDb();
-      dbCache.categories = catCache;
-
-      // Let the Transactions page know the category list changed
-      window.dispatchEvent(new CustomEvent("plutus:categories-updated"));
-
-      render();
-      return;
-    }
-
+  function removeCategory(type, name) {
     const budget = loadBudget();
     budget[type] = budget[type].filter((c) => c.name.toLowerCase() !== name.toLowerCase());
     writeJSON(STORAGE_BUDGET, budget);
@@ -865,7 +1143,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     if (e.key === "Escape" && !backdrop.classList.contains("hidden")) closeModal();
   });
 
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
 
     const type = catTypeEl.value; // income|expense
@@ -878,29 +1156,13 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     }
 
     const budget = loadBudget();
+
     const exists = budget[type].some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (exists) {
       alert("That category already exists.");
       return;
     }
 
-    if (backendAvailable()) {
-      const h = await handlerReady();
-      const isIncome = type === "income";
-      // amount isn't part of the Categories UI yet; store 0 for now
-      h.add_category(isIncome, name, 0.0, color);
-
-      catCache = await refreshCategoriesFromDb();
-      dbCache.categories = catCache;
-
-      window.dispatchEvent(new CustomEvent("plutus:categories-updated"));
-
-      closeModal();
-      render();
-      return;
-    }
-
-    // Browser-only fallback
     budget[type].push({ name, color });
     writeJSON(STORAGE_BUDGET, budget);
 
@@ -920,11 +1182,5 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   searchInput?.addEventListener("input", render);
 
   // Init
-  (async function init() {
-    if (backendAvailable()) {
-      catCache = await refreshCategoriesFromDb();
-      dbCache.categories = catCache;
-    }
-    render();
-  })();
+  render();
 })();
