@@ -448,15 +448,152 @@
             <article class="view" id="view-goals" data-title="Goals">
                 <div class="contentHeader">
                     <h1>Goals</h1>
-                    <p>Experiment with what-if scenarios to see how it will affect you current finances.</p>
+                    <p>Experiment with what-if scenarios to see how budget and net cash flow could change.</p>
                 </div>
 
-                <div class="grid">
-                    <section class="card">
+                <div class="grid goals-grid">
+                    <section class="card goals-create">
                         <div class="cardTop">
-                            <h3>Coming Soon</h3>
+                            <h3>Add What-If Scenario</h3>
                         </div>
-                        <p>Goals features coming soon</p>
+
+                        <form id="goalScenarioForm" class="form" autocomplete="off">
+                            <div class="row">
+                                <label>
+                                    Type
+                                    <select id="goalScenarioType" required>
+                                        <option value="expense">Expense</option>
+                                        <option value="income">Income</option>
+                                    </select>
+                                </label>
+
+                                <label>
+                                    Amount
+                                    <input id="goalScenarioAmount" type="number" inputmode="decimal" step="0.01" min="0"
+                                        placeholder="0.00" required />
+                                </label>
+                            </div>
+
+                            <div class="row">
+                                <label>
+                                    Category
+                                    <select id="goalScenarioCategory" required></select>
+                                </label>
+
+                                <label>
+                                    Scenario name
+                                    <input id="goalScenarioName" type="text" maxlength="60"
+                                        placeholder="e.g., Extra consulting income" required />
+                                </label>
+                            </div>
+
+                            <label>
+                                Notes (optional)
+                                <input id="goalScenarioNote" type="text" maxlength="140"
+                                    placeholder="Optional note for context" />
+                            </label>
+
+                            <div class="modal-actions">
+                                <button type="button" id="goalClearBtn" class="btn secondary">Clear All</button>
+                                <button type="submit" class="btn primary">Add Scenario</button>
+                            </div>
+
+                            <div id="goalsFormWarn" class="warn hidden"></div>
+                        </form>
+                    </section>
+
+                    <section class="card goals-summary">
+                        <div class="cardTop">
+                            <h3>Projection Summary</h3>
+                        </div>
+
+                        <div class="goals-metrics">
+                            <div class="metric">
+                                <div class="label">Current income</div>
+                                <div id="goalsCurrentIncome" class="value">$0.00</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">Projected income</div>
+                                <div id="goalsProjectedIncome" class="value">$0.00</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">What-if income added</div>
+                                <div id="goalsScenarioIncome" class="value">$0.00</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">Current expenses</div>
+                                <div id="goalsCurrentExpense" class="value">$0.00</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">Projected expenses</div>
+                                <div id="goalsProjectedExpense" class="value">$0.00</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">What-if expenses added</div>
+                                <div id="goalsScenarioExpense" class="value">$0.00</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">Current net cash flow</div>
+                                <div id="goalsCurrentNet" class="value">$0.00</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">Projected net cash flow</div>
+                                <div id="goalsProjectedNet" class="value">$0.00</div>
+                                <div id="goalsNetDelta" class="delta neutral">No change</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">Projected budget remaining</div>
+                                <div id="goalsBudgetProjected" class="value">Not set</div>
+                                <div id="goalsBudgetDelta" class="delta neutral">No change</div>
+                            </div>
+                        </div>
+
+                        <div id="goalsBudgetStatus" class="muted goals-status"></div>
+                    </section>
+
+                    <section class="card goals-list">
+                        <div class="cardTop">
+                            <h3>Scenario List</h3>
+                            <span id="goalScenarioCount" class="muted">0 scenarios</span>
+                        </div>
+
+                        <div class="list-head goals-head">
+                            <span class="col type">Type</span>
+                            <span class="col scenario">Scenario</span>
+                            <span class="col category">Category</span>
+                            <span class="col amount">Amount</span>
+                            <span class="col impact">Net Impact</span>
+                            <span class="col act">Delete</span>
+                        </div>
+
+                        <ul id="goalsScenarioList" class="goals-list-ul" aria-label="What-if scenarios"></ul>
+
+                        <div id="goalsEmptyState" class="empty" style="display:none;">
+                            No scenarios yet. Add one above to test future changes.
+                        </div>
+                    </section>
+
+                    <section class="card goals-impact">
+                        <div class="cardTop">
+                            <h3>Budget Category Impact</h3>
+                        </div>
+
+                        <p class="muted">Shows projected spending against your existing category allocations.</p>
+
+                        <div class="list-head goals-impact-head">
+                            <span class="col category">Category</span>
+                            <span class="col limit">Limit</span>
+                            <span class="col current">Current Spent</span>
+                            <span class="col scenario">Scenario +</span>
+                            <span class="col projected">Projected Spent</span>
+                            <span class="col remaining">Remaining</span>
+                        </div>
+
+                        <ul id="goalsImpactList" class="goals-impact-ul" aria-label="Budget impact list"></ul>
+
+                        <div id="goalsImpactEmpty" class="empty" style="display:none;">
+                            Set budget allocations on the Budget tab to see per-category impact.
+                        </div>
                     </section>
                 </div>
             </article>
