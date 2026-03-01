@@ -1616,32 +1616,38 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     if (emptyStateEl)
       emptyStateEl.style.display = sorted.length ? "none" : "block";
 
-    for (const s of sorted) {
+    for (let i = 0; i < sorted.length; i++) {
       const li = document.createElement("li");
       li.className = "goals-row";
 
       const typeCell = document.createElement("div");
       typeCell.className = "goals-type";
-      typeCell.innerHTML = `<span class="cat-type-badge">${s.type === "income" ? "Income" : "Expense"}</span>`;
+      typeCell.innerHTML = `<span class="cat-type-badge">${sorted[i].type === "income" ? "Income" : "Expense"}</span>`;
 
       const scenarioCell = document.createElement("div");
       scenarioCell.className = "goals-scenario";
       scenarioCell.innerHTML = `
-        <div class="title">${escapeHtml(s.name)}</div>
-        <div class="muted">${s.note ? escapeHtml(s.note) : "No notes"}</div>
+        <div class="title">${escapeHtml(sorted[i].name)}</div>
+        <div class="muted">${sorted[i].note ? escapeHtml(sorted[i].note) : "No notes"}</div>
       `;
 
       const categoryCell = document.createElement("div");
       categoryCell.className = "goals-category";
-      categoryCell.textContent = s.category;
+      categoryCell.textContent = sorted[i].category;
 
       const amountCell = document.createElement("div");
       amountCell.className = "goals-amount";
-      amountCell.textContent = money(s.amount);
+      amountCell.textContent = money(sorted[i].amount);
 
       const impactCell = document.createElement("div");
-      impactCell.className = `goals-net-impact ${s.type === "income" ? "good" : "bad"}`;
-      impactCell.textContent = `${s.type === "income" ? "+" : "-"}${money(s.amount)}`;
+      impactCell.className = `goals-net-impact ${sorted[i].type === "income" ? "good" : "bad"}`;
+      let netImpact = 0;
+      for (let j = i; j < sorted.length; j++) {
+        if (sorted[j].category === sorted[i].category) {
+          netImpact += sorted[j].amount;
+        }
+      }
+      impactCell.textContent = `${sorted[i].type === "income" ? "+" : "-"}${money(netImpact)}`;
 
       const actions = document.createElement("div");
       actions.className = "actions";
@@ -1650,7 +1656,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       del.className = "delete-btn";
       del.type = "button";
       del.title = "Delete scenario";
-      del.dataset.deleteId = s.id;
+      del.dataset.deleteId = sorted[i].id;
       del.innerHTML = `
         <img class="tableIcon"
           src="Icons/delete_dark-mode.png"
