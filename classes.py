@@ -9,6 +9,7 @@ class Transaction():
     recurring : bool
     frequency : int
     endDate : str
+    # These methods may end up being unnecessary, as all this information is passed within the class instance itself to the frontend.
     def getDate():
         return self.date
     def getAmount():
