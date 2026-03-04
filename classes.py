@@ -41,7 +41,7 @@ class Income(Transaction):
         self.endDate = endDate
         self.transactionType = "Income"
 class Budget():
-    # Currently unused. Will replace ClassHandler's expenses and income later.
+    # Currently unused. Will replace CallHandler's expenses and income later.
     amount : float
     expenses : [Expense]
     income : [Income]
@@ -54,6 +54,7 @@ class Category():
     name : str
     amount : float
     color : str
+    transactions:[Transaction]
     def getAmount():
         return self.amount
 
@@ -62,12 +63,16 @@ class ExpenseCategory(Category):
         self.name = name
         self.amount = amount
         self.color = color
+        self.transactions = []
+        self.categoryType = 0
         
 class IncomeCategory(Category):
     def __init__(self, name:str, color:str, amount=0.00):
         self.name = name
         self.amount = amount
         self.color = color
+        self.transactions = []
+        self.categoryType = 1
 class Goal():
     purpose : str
     balance : float
