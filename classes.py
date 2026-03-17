@@ -22,6 +22,7 @@ class Expense(Transaction):
     def __init__(self, id:int,date:str,name:str,amount:float,category:str,recurring:bool,frequency:int,endDate:str,credit:bool):
         self.id = id
         self.date = date
+        self.name = name
         self.amount = amount
         self.category = category
         self.recurring = recurring
@@ -35,6 +36,7 @@ class Income(Transaction):
     def __init__(self,id:int,date:str,name:str,amount:float,category:str,recurring:bool,frequency:int,endDate:str):
         self.id = id
         self.date = date
+        self.name = name
         self.amount = amount
         self.category = category
         self.recurring = recurring

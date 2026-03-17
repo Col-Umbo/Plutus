@@ -1,8 +1,12 @@
-// =============== Utilities ===============
+// ==================== Utilities ====================
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-// =============== Views / Routing (Switch between tabs) ===============
+
+
+
+
+// ==================== Views / Routing (Switch between tabs) ====================
 const views = {
   home: $("#view-home"),
   transactions: $("#view-transactions"),
@@ -44,7 +48,11 @@ const initial = (location.hash || "#home").slice(1);
 history.replaceState({ key: initial }, "", `#${initial}`);
 setActiveView(initial, { push: false });
 
-// =============== Theme toggle (Light/Dark) ===============
+
+
+
+
+// ==================== Theme toggle (Light/Dark) ====================
 const themeToggleBtn = $("#themeToggleBtn");
 const themeLabel = $("#themeLabel");
 const THEME_KEY = "theme_preference"; // "light" | "dark"
@@ -87,7 +95,11 @@ themeToggleBtn?.addEventListener("click", () => {
 
 document.addEventListener("DOMContentLoaded", updateDockIcons);
 
-// =============== Password Overlay (guarded - not built yet) ===============
+
+
+
+
+// ==================== Password Overlay (guarded - not built yet) ====================
 (function initPasswordOverlay() {
   const overlay = $("#overlay");
   const passwordBtn = $("#passwordBtn");
@@ -107,7 +119,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   });
 })();
 
-// =============== Transactions Page ===============
+
+
+
+
+// ==================== Transactions Page ====================
 (function initTransactions() {
   // If transactions view isn't in DOM, do nothing
   const openAddModalBtn = $("#openAddModal");
@@ -538,7 +554,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   render();
 })();
 
-// =============== Budget Page ===============
+
+
+
+
+// ==================== Budget Page ====================
 (function initBudget() {
   const pieCanvas = document.querySelector("#budgetPie");
   const overallForm = document.querySelector("#overallBudgetForm");
@@ -1018,7 +1038,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   render();
 })();
 
-// =============== Categories Page ===============
+
+
+
+
+// ==================== Categories Page ====================
 (function initCategories() {
   const openBtn = $("#openCatModal");
   const backdrop = $("#catModalBackdrop");
@@ -1257,7 +1281,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   render();
 })();
 
-// =============== Goals Page ===============
+
+
+
+
+// ==================== Goals Page ====================
 (function initGoals() {
   const form = $("#goalScenarioForm");
   const scenarioTypeEl = $("#goalScenarioType");

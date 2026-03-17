@@ -58,21 +58,34 @@ class CallHandler(QObject):
     # take an argument from javascript. These only work with @Slot defining the accepted and returned parameter types
     @Slot(str, float, str, bool, int, str, bool)
     def log_expense(self, name, amount, category, recurring, frequency, endDate, credit):
-        self.cursor.execute('INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit) VALUES ("'+datetime.date.today().strftime('%d-%m-%y')+'", "'+name+'", '+str(amount)+', "'+category+'", '+str(recurring)+', '+str(frequency)+', "'+endDate+'",'+str(credit)+')')
+        today = datetime.date.today().strftime('%d-%m-%y')
+        self.cursor.execute(
+        '''
+        INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        (today, name, amount, category, recurring, frequency, endDate, credit)
+    )
         self.con.commit()
-        # These produce index out of range errors, should default to id=0.
-        if not self.budget.expenses:
-            self.budget.expenses.append(classes.Expense(0,datetime.date.today().strftime('%d-%m-%y'), name, amount, category, recurring, frequency, endDate, credit))
-        else:
-            self.budget.expenses.append(classes.Expense(self.budget.expenses[-1].id+1,datetime.date.today().strftime('%d-%m-%y'), name, amount, category, recurring, frequency, endDate, credit))
+        new_id = self.cursor.lastrowid
+        expense = classes.Expense(new_id, today, name, amount, category, recurring, frequency, endDate, credit)
+        self.expenses.append(expense)
+
     @Slot(str, float, str, bool, int, str)
     def log_income(self, name, amount, category, recurring, frequency, endDate):
-        self.cursor.execute('INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate) VALUES ("'+datetime.date.today().strftime('%d-%m-%y')+'", "'+name+'", '+str(amount)+', "'+category+'", '+str(recurring)+', '+str(frequency)+', "'+endDate+'")')
+        today = datetime.date.today().strftime('%d-%m-%y')
+        self.cursor.execute(
+            '''
+            INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (today, name, amount, category, recurring, frequency, endDate)
+        )
         self.con.commit()
-        if not self.budget.income:
-            self.budget.income.append(classes.Income(0,datetime.date.today().strftime('%d-%m-%y'),name, amount, category, recurring, frequency, endDate))
-        else:
-            self.budget.income.append(classes.Income(self.budget.income[-1].id+1,datetime.date.today().strftime('%d-%m-%y'),name, amount, category, recurring, frequency, endDate))
+
+    new_id = self.cursor.lastrowid
+    income = classes.Income(new_id, today, name, amount, category, recurring, frequency, endDate)
+    self.income.append(income)
     @Slot(str, result=str)
     def get_expenses(self, month):
         return json.dumps([expense.__dict__ for expense in self.expenses])
@@ -87,12 +100,18 @@ class CallHandler(QObject):
         return json.dumps([category.__dict__ for category in self.incomeCategories])
     @Slot(bool, str, float, str)
     def add_category(self, categoryType, name, amount, color):
-        if categoryType == False:
-            self.cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("'+name+'", '+str(amount)+', "'+color+'")')
-            self.expenseCategories.append(classes.ExpenseCategory(name, amount, color))
-        elif categoryType == True:
-            self.cursor.execute('INSERT INTO IncomeCategories (name, amount, color) VALUES ("'+name+'", '+str(amount)+', "'+color+'")')
-            self.incomeCategories.append(classes.IncomeCategory(name, amount, color))
+        if categoryType is False:
+            self.cursor.execute(
+                'INSERT INTO ExpenseCategories (name, amount, color) VALUES (?, ?, ?)',
+                (name, amount, color)
+            )
+            self.expenseCategories.append(classes.ExpenseCategory(name, color, amount))
+        else:
+            self.cursor.execute(
+                'INSERT INTO IncomeCategories (name, amount, color) VALUES (?, ?, ?)',
+                (name, amount, color)
+            )
+            self.incomeCategories.append(classes.IncomeCategory(name, color, amount))
         self.con.commit()
     @Slot(str)
     def delete_expense_category(self, name):

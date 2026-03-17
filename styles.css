@@ -83,6 +83,10 @@ body {
   color: var(--text);
 }
 
+
+
+
+
 /* ~~~~~~~~~~ Light Mode Overrides ~~~~~~~~~~ */
 body.light {
   --bg: #f6f7fb;
@@ -300,6 +304,10 @@ body.light .delete-btn:hover {
   outline-offset: 2px;
 }
 
+
+
+
+
 /* ~~~~~~~~~~ Topbar Styles ~~~~~~~~~~ */
 header {
   position: sticky;
@@ -379,6 +387,10 @@ header {
   color: var(--text);
 }
 
+
+
+
+
 /* ~~~~~~~~~~ Password Overlay Styles ~~~~~~~~~~ */
 .overlay {
   position: fixed;
@@ -425,6 +437,10 @@ header {
   gap: 10px;
   align-items: center;
 }
+
+
+
+
 
 /* ~~~~~~~~~~ Main Content / Page Styles ~~~~~~~~~~ */
 main {
@@ -695,6 +711,10 @@ input[type="color"] {
   color: var(--muted);
   font-size: 12px;
 }
+
+
+
+
 
 /* ~~~~~~~~~~ Transactions Page Styles ~~~~~~~~~~ */
 .transactionTotals {
@@ -1108,6 +1128,10 @@ select:focus {
   }
 }
 
+
+
+
+
 /* ~~~~~~~~~~ Budget Page Styles ~~~~~~~~~~ */
 
 .budget-grid .budget-overall {
@@ -1293,6 +1317,10 @@ body.light .budget-bar {
   }
 }
 
+
+
+
+
 /* ~~~~~~~~~~ Categories Page Styles ~~~~~~~~~~ */
 .categoryTotals {
   display: grid;
@@ -1379,6 +1407,10 @@ body.light .budget-bar {
     justify-content: flex-start;
   }
 }
+
+
+
+
 
 /* ~~~~~~~~~~ Goals Page Styles ~~~~~~~~~~ */
 .goals-grid .goals-create {
@@ -1547,6 +1579,10 @@ body.light .goals-impact-row {
   }
 }
 
+
+
+
+
 /* ~~~~~~~~~~ Navbar Tabs ~~~~~~~~~~ */
 .view {
   display: none;
@@ -1555,6 +1591,10 @@ body.light .goals-impact-row {
 .view.active {
   display: block;
 }
+
+
+
+
 
 /* ~~~~~~~~~~ Navigation Dock Styles ~~~~~~~~~~ */
 .dock {
@@ -1648,6 +1688,10 @@ body.light .goals-impact-row {
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
 }
+
+
+
+
 
 /* ~~~~~~~~~~ Footer ~~~~~~~~~~ */
 .footer {
