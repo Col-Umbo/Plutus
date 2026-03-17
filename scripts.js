@@ -131,9 +131,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   const txForm = $("#txForm");
   if (!openAddModalBtn || !modalBackdrop || !txForm) return;
 
-  const STORAGE_TX = "plutus_transactions_v1";
-  const STORAGE_BUDGET = "categorized_budget_v1"; // Budget page stores categories here
-
   // DOM
   const incomeTotalEl = $("#incomeTotal");
   const expenseTotalEl = $("#expenseTotal");
@@ -157,31 +154,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   let currentFilter = "all"; // all | income | expense
 
-  const DEFAULT_CATEGORIES = {
-    income: ["Paycheck", "Side Hustle", "Refund", "Gift"],
-    expense: [
-      "Groceries",
-      "Bills",
-      "Subscriptions",
-      "Entertainment",
-      "Gas",
-      "General Needs",
-    ],
-  };
-
-  function readJSON(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  function writeJSON(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
   function money(n) {
     const v = Number(n || 0);
     return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -198,10 +170,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     });
   }
 
-  function uid() {
-    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-  }
-
   function escapeHtml(str) {
     return String(str ?? "")
       .replaceAll("&", "&amp;")
@@ -211,91 +179,28 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       .replaceAll("'", "&#039;");
   }
 
-  function normalizeType(raw) {
-    const t = String(raw ?? "")
-      .toLowerCase()
-      .trim();
-    if (t === "income") return "income";
-    // accept "expense", "expenses", "exp"
-    if (t === "expense" || t === "expenses" || t === "exp") return "expense";
-    return "expense"; // default
-  }
+    function populateCategories() {
+    if (!window.handler || !txCategory) return;
 
-  function normalizeTx(tx) {
-    // tolerate older/other property names too
-    const type = normalizeType(tx?.type ?? tx?.txType ?? tx?.kind);
-
-    return {
-      id: tx?.id ?? uid(),
-      createdAt: Number(tx?.createdAt ?? Date.now()),
-      type,
-      amount: Number(tx?.amount ?? tx?.amt ?? 0).toFixed(2),
-      date: String(tx?.date ?? ""),
-      category: String(tx?.category ?? tx?.cat ?? "Uncategorized"),
-      name: String(tx?.name ?? tx?.txName ?? tx?.title ?? "Transaction"),
-      repeats: Boolean(tx?.repeats),
-      repeatEvery: String(tx?.repeatEvery ?? ""),
-    };
-  }
-
-  function loadTransactions() {
-    const raw = readJSON(STORAGE_TX, []);
-    if (!Array.isArray(raw)) return [];
-
-    // normalize everything so filters/search always work
-    const normalized = raw.map(normalizeTx);
-
-    // optional: write back normalized data once to “fix” old entries permanently
-    writeJSON(STORAGE_TX, normalized);
-
-    return normalized;
-  }
-
-  function saveTransactions(list) {
-    writeJSON(STORAGE_TX, list);
-    window.dispatchEvent(new CustomEvent("plutus:transactions-updated"));
-  }
-
-  function getCategoriesFromBudgetState() {
-    // Budget storage is { categories: [{id,type,name,color,...}], items: [...] }
-    const budgetState = readJSON(STORAGE_BUDGET, null);
-    if (!budgetState?.categories?.length) return DEFAULT_CATEGORIES;
-
-    const income = budgetState.categories
-      .filter((c) => c.type === "income")
-      .map((c) => c.name)
-      .filter(Boolean);
-
-    const expense = budgetState.categories
-      .filter((c) => c.type === "expense")
-      .map((c) => c.name)
-      .filter(Boolean);
-
-    return {
-      income: income.length ? income : DEFAULT_CATEGORIES.income,
-      expense: expense.length ? expense : DEFAULT_CATEGORIES.expense,
-    };
-  }
-
-  // Create categories
-  function populateCategories() {
-    if (!txCategory) return;
-
-    const type = txType.value; // income | expense
+    const type = txType.value; // "income" or "expense"
     txCategory.innerHTML = "";
 
-    const budget = readJSON(STORAGE_BUDGET, null);
-    const fallback = DEFAULT_CATEGORIES[type] || [];
-    const rawList = budget?.[type] ?? fallback;
+    const callback = function (json) {
+      const list = JSON.parse(json || "[]");
 
-    for (const item of rawList) {
-      const name = typeof item === "string" ? item : item?.name;
-      if (!name) continue;
+      for (const item of list) {
+        if (!item.name) continue;
+        const opt = document.createElement("option");
+        opt.value = item.name;
+        opt.textContent = item.name;
+        txCategory.appendChild(opt);
+      }
+    };
 
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      txCategory.appendChild(opt);
+    if (type === "income") {
+      handler.get_income_categories(callback);
+    } else {
+      handler.get_expense_categories(callback);
     }
   }
 
@@ -343,16 +248,31 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     populateCategories();
   }
 
-  function deleteTransaction(id) {
-    const list = loadTransactions();
-    const next = list.filter((t) => t.id !== id);
-    saveTransactions(next);
-    render();
+  function loadTransactionsFromBackend() {
+    if (!window.handler) return;
+
+    handler.get_expenses("", function (expenseJson) {
+      handler.get_income("", function (incomeJson) {
+        const expenses = JSON.parse(expenseJson || "[]").map((e) => ({
+          ...e,
+          type: "expense",
+          repeats: Boolean(e.recurring),
+          repeatEvery: String(e.frequency || ""),
+        }));
+
+        const income = JSON.parse(incomeJson || "[]").map((i) => ({
+          ...i,
+          type: "income",
+          repeats: Boolean(i.recurring),
+          repeatEvery: String(i.frequency || ""),
+        }));
+
+        renderTransactions([...expenses, ...income]);
+      });
+    });
   }
 
-  function render() {
-    const transactions = loadTransactions();
-
+  function renderTransactions(transactions) {
     const totals = computeTotals(transactions);
     if (incomeTotalEl) incomeTotalEl.textContent = money(totals.income);
     if (expenseTotalEl) expenseTotalEl.textContent = money(totals.expense);
@@ -361,11 +281,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const filtered = transactions
       .filter(matchesFilter)
       .filter((t) => matchesSearch(t, q))
-      .sort(
-        (a, b) =>
-          (b.date || "").localeCompare(a.date || "") ||
-          b.createdAt - a.createdAt,
-      );
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
     txListEl.innerHTML = "";
 
@@ -379,90 +295,26 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
       const date = document.createElement("div");
       date.className = "date muted";
-      date.textContent = formatDate(t.date);
+      date.textContent = t.date || "";
 
       const name = document.createElement("div");
       name.className = "name";
       name.innerHTML = `
-        <div style="font-weight:700">${escapeHtml(t.name)}</div>
+        <div style="font-weight:700">${escapeHtml(t.name || "")}</div>
         <div class="muted">${t.repeats ? `Repeats: ${escapeHtml(t.repeatEvery)}` : "One-time"}</div>
       `;
 
       const cat = document.createElement("div");
       cat.className = "cat";
-      cat.innerHTML = `<span class="badge"><span class="dot"></span>${escapeHtml(t.category)}</span>`;
+      cat.innerHTML = `<span class="badge"><span class="dot"></span>${escapeHtml(t.category || "")}</span>`;
 
-      // Make the amount turn red if transaction goes over budget
-      const budgetState = (function () {
-        try {
-          const raw = localStorage.getItem("plutus_budget_v1");
-          const s = raw ? JSON.parse(raw) : null;
-          const overall = Math.max(0, Number(s?.overall ?? 0) || 0);
-          const allocations = Array.isArray(s?.allocations)
-            ? s.allocations
-            : [];
-          return {
-            overall,
-            allocations: allocations
-              .map((a) => ({
-                category: String(a?.category ?? "").trim(),
-                limit: Math.max(0, Number(a?.limit ?? 0) || 0),
-              }))
-              .filter((a) => a.category),
-          };
-        } catch {
-          return { overall: 0, allocations: [] };
-        }
-      })();
-
-      const allocLimitMap = new Map(
-        budgetState.allocations.map((a) => [a.category.toLowerCase(), a.limit]),
-      );
-      const spentByCat = new Map();
-
-      for (const tx of transactions) {
-        if (String(tx?.type).toLowerCase() !== "expense") continue;
-        const amt = Math.abs(Number(tx?.amount ?? 0) || 0);
-        const catKey = String(tx?.category ?? "Uncategorized").toLowerCase();
-        if (allocLimitMap.has(catKey)) {
-          spentByCat.set(catKey, (spentByCat.get(catKey) || 0) + amt);
-        }
-      }
-
-      const overspentCats = new Set();
-      for (const [catKey, spent] of spentByCat.entries()) {
-        const limit = allocLimitMap.get(catKey) || 0;
-        if (limit > 0 && spent > limit) overspentCats.add(catKey);
-      }
-
-      // Inside the transaction loop, replace amt creation with:
       const amt = document.createElement("div");
-      const isOver =
-        String(t.type).toLowerCase() === "expense" &&
-        overspentCats.has(String(t.category || "").toLowerCase());
-
-      amt.className = `amount ${t.type}${isOver ? " over-budget" : ""}`;
-      amt.textContent = money(Math.abs(Number(t.amount)));
-      // end
+      amt.className = `amount ${t.type}`;
+      amt.textContent = money(Math.abs(Number(t.amount || 0)));
 
       const actions = document.createElement("div");
       actions.className = "actions";
-
-      const del = document.createElement("button");
-      del.className = "delete-btn";
-      del.type = "button";
-      del.title = "Delete";
-      del.classList.add("delete-btn");
-      del.innerHTML = `
-  <img class="tableIcon"
-       src="Icons/delete_dark-mode.png"
-       data-dark="Icons/delete_dark-mode.png"
-       data-light="Icons/delete_light-mode.png"
-       alt="Delete" />
-`;
-      del.addEventListener("click", () => deleteTransaction(t.id));
-
-      actions.appendChild(del);
+      actions.innerHTML = "";
 
       const repeat = document.createElement("div");
       repeat.className = "repeat muted";
@@ -501,41 +353,47 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   txForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
+    if (!window.handler) {
+      alert("Backend not connected.");
+      return;
+    }
+
     const amount = Number(txAmount.value);
     if (!Number.isFinite(amount) || amount <= 0) {
       alert("Please enter a valid amount greater than 0.");
       return;
     }
 
-    const date = txDate.value;
     const type = txType.value;
     const category = txCategory.value;
     const name = txName.value.trim();
 
-    if (!date || !category || !name) {
+    if (!category || !name) {
       alert("Please fill out all required fields.");
       return;
     }
 
     const repeats = txRepeats.checked;
-    const repeatEveryVal = repeats ? repeatEvery.value : "";
+    let frequency = 0;
 
-    const list = loadTransactions();
-    list.push({
-      id: uid(),
-      createdAt: Date.now(),
-      type,
-      amount: amount.toFixed(2),
-      date,
-      category,
-      name,
-      repeats,
-      repeatEvery: repeatEveryVal,
-    });
-    saveTransactions(list);
+    if (repeats) {
+      if (repeatEvery.value === "weekly") frequency = 7;
+      else if (repeatEvery.value === "biweekly") frequency = 14;
+      else if (repeatEvery.value === "monthly") frequency = 30;
+      else if (repeatEvery.value === "yearly") frequency = 365;
+    }
+
+    const endDate = "";
+    const credit = false;
+
+    if (type === "expense") {
+      handler.log_expense(name, amount, category, repeats, frequency, endDate, credit);
+    } else {
+      handler.log_income(name, amount, category, repeats, frequency, endDate);
+    }
 
     closeModal();
-    render();
+    setTimeout(loadTransactionsFromBackend, 50);
   });
 
   pills.forEach((btn) => {
@@ -543,15 +401,15 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       pills.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       currentFilter = btn.dataset.filter;
-      render();
+      loadTransactionsFromBackend();
     });
   });
 
-  searchInput?.addEventListener("input", render);
+  searchInput?.addEventListener("input", loadTransactionsFromBackend);
 
   // Init
   populateCategories();
-  render();
+  loadTransactionsFromBackend();
 })();
 
 
@@ -1069,56 +927,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   let currentFilter = "all"; // all | income | expense
 
-  function readJSON(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  function writeJSON(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
-  function normalizeBudgetShape(budget) {
-    // Accept older format: { income: ["Paycheck"], expense: ["Groceries"] }
-    // Convert to: { income: [{name,color}], expense: [{name,color}] }
-    const out = { income: [], expense: [] };
-
-    for (const type of ["income", "expense"]) {
-      const arr = Array.isArray(budget?.[type]) ? budget[type] : [];
-      out[type] = arr
-        .map((item) => {
-          if (typeof item === "string")
-            return {
-              name: item,
-              color: type === "income" ? "#22c55e" : "#fb7185",
-            };
-          if (item && typeof item === "object" && item.name)
-            return {
-              name: String(item.name),
-              color: String(item.color || "#94a3b8"),
-            };
-          return null;
-        })
-        .filter(Boolean);
-    }
-
-    return out;
-  }
-
-  function loadBudget() {
-    const raw = readJSON(STORAGE_BUDGET, null);
-    const normalized = normalizeBudgetShape(raw);
-
-    // Write back once so everything stays consistent going forward
-    writeJSON(STORAGE_BUDGET, normalized);
-
-    return normalized;
-  }
-
   function openModal() {
     backdrop.classList.remove("hidden");
     backdrop.setAttribute("aria-hidden", "false");
@@ -1131,13 +939,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     form.reset();
   }
 
-  function counts(budget) {
-    return {
-      income: budget.income.length,
-      expense: budget.expense.length,
-    };
-  }
-
   function matchesFilter(item) {
     if (currentFilter === "all") return true;
     return item.type === currentFilter;
@@ -1148,77 +949,64 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return item.name.toLowerCase().includes(q.toLowerCase());
   }
 
-  function removeCategory(type, name) {
-    const budget = loadBudget();
-    budget[type] = budget[type].filter(
-      (c) => c.name.toLowerCase() !== name.toLowerCase(),
-    );
-    writeJSON(STORAGE_BUDGET, budget);
-    window.dispatchEvent(new CustomEvent("plutus:categories-updated"));
-    render();
-  }
+  function renderCategoriesFromBackend() {
+    if (!window.handler) return;
 
-  function render() {
-    const budget = loadBudget();
-    const c = counts(budget);
+    handler.get_expense_categories(function (expenseJson) {
+      handler.get_income_categories(function (incomeJson) {
+        const expense = JSON.parse(expenseJson || "[]").map((x) => ({
+          ...x,
+          type: "expense",
+        }));
+        const income = JSON.parse(incomeJson || "[]").map((x) => ({
+          ...x,
+          type: "income",
+        }));
 
-    if (catIncomeTotalEl) catIncomeTotalEl.textContent = String(c.income);
-    if (catExpenseTotalEl) catExpenseTotalEl.textContent = String(c.expense);
+        const flat = [...income, ...expense];
+        const q = (searchInput?.value || "").trim();
 
-    const q = (searchInput?.value || "").trim();
+        const filtered = flat
+          .filter(matchesFilter)
+          .filter((x) => matchesSearch(x, q))
+          .sort((a, b) => a.name.localeCompare(b.name));
 
-    // flatten for display
-    const flat = [
-      ...budget.income.map((x) => ({ ...x, type: "income" })),
-      ...budget.expense.map((x) => ({ ...x, type: "expense" })),
-    ];
+        if (catIncomeTotalEl) catIncomeTotalEl.textContent = String(income.length);
+        if (catExpenseTotalEl) catExpenseTotalEl.textContent = String(expense.length);
 
-    const filtered = flat
-      .filter(matchesFilter)
-      .filter((x) => matchesSearch(x, q))
-      .sort((a, b) => a.name.localeCompare(b.name));
+        listEl.innerHTML = "";
 
-    listEl.innerHTML = "";
+        if (emptyEl) {
+          emptyEl.style.display = filtered.length === 0 ? "block" : "none";
+        }
 
-    if (emptyEl)
-      emptyEl.style.display = filtered.length === 0 ? "block" : "none";
+        for (const item of filtered) {
+          const li = document.createElement("li");
+          li.className = "cat-item";
 
-    for (const item of filtered) {
-      const li = document.createElement("li");
-      li.className = "cat-item";
+          const type = document.createElement("div");
+          type.innerHTML = `<span class="cat-type-badge">${item.type === "income" ? "Income" : "Expense"}</span>`;
 
-      const type = document.createElement("div");
-      type.innerHTML = `<span class="cat-type-badge">${item.type === "income" ? "Income" : "Expense"}</span>`;
+          const name = document.createElement("div");
+          name.className = "name";
+          name.style.fontWeight = "700";
+          name.textContent = item.name;
 
-      const name = document.createElement("div");
-      name.className = "name";
-      name.style.fontWeight = "700";
-      name.textContent = item.name;
+          const color = document.createElement("div");
+          color.className = "cat-swatch";
+          color.innerHTML = `<span class="dot" style="background:${item.color}"></span><span class="muted">${item.color}</span>`;
 
-      const color = document.createElement("div");
-      color.className = "cat-swatch";
-      color.innerHTML = `<span class="dot" style="background:${item.color}"></span><span class="muted">${item.color}</span>`;
+          const actions = document.createElement("div");
+          actions.className = "cat-actions";
+          actions.innerHTML = "";
 
-      const actions = document.createElement("div");
-      actions.className = "cat-actions";
+          li.append(type, name, color, actions);
+          listEl.appendChild(li);
+        }
 
-      const del = document.createElement("button");
-      del.className = "delete-btn";
-      del.type = "button";
-      del.title = "Delete";
-      del.innerHTML = `
-      <img class="tableIcon"
-        src="Icons/delete_dark-mode.png"
-        data-dark="Icons/delete_dark-mode.png"
-        data-light="Icons/delete_light-mode.png"
-        alt="Delete" />
-      `;
-      del.addEventListener("click", () => removeCategory(item.type, item.name));
-      actions.appendChild(del);
-      li.append(type, name, color, actions);
-      listEl.appendChild(li);
-    }
-    updateDockIcons();
+        updateDockIcons();
+      });
+    });
   }
 
   // Events
@@ -1239,6 +1027,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
+    if (!window.handler) {
+      alert("Backend not connected.");
+      return;
+    }
+
     const type = catTypeEl.value; // income|expense
     const name = catNameEl.value.trim();
     const color = catColorEl.value;
@@ -1248,22 +1041,14 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       return;
     }
 
-    const budget = loadBudget();
-
-    const exists = budget[type].some(
-      (c) => c.name.toLowerCase() === name.toLowerCase(),
-    );
-    if (exists) {
-      alert("That category already exists.");
-      return;
-    }
-
-    budget[type].push({ name, color });
-    writeJSON(STORAGE_BUDGET, budget);
-    window.dispatchEvent(new CustomEvent("plutus:categories-updated"));
+    const isIncome = type === "income";
+    handler.add_category(isIncome, name, 0.0, color);
 
     closeModal();
-    render();
+    setTimeout(() => {
+      renderCategoriesFromBackend();
+      if (typeof populateCategories === "function") populateCategories();
+    }, 50);
   });
 
   pills.forEach((btn) => {
@@ -1271,14 +1056,14 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       pills.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       currentFilter = btn.dataset.filter;
-      render();
+      renderCategoriesFromBackend();
     });
   });
 
-  searchInput?.addEventListener("input", render);
+  searchInput?.addEventListener("input", renderCategoriesFromBackend);
 
   // Init
-  render();
+  renderCategoriesFromBackend();
 })();
 
 
