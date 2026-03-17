@@ -44,23 +44,35 @@ class CallHandler(QObject):
         for row in categoryTable:
             # Split and parameterize DB entries
             self.expenseCategories.append(classes.ExpenseCategory(*row))
+            expenses = self.cursor.execute('SELECT * FROM Expenses WHERE categoryName="'+row[0]+'"')
+            for expense in expenses:
+                self.expenseCategories[-1].transactions.append(classes.Expense(*expense))
         categoryTable = self.cursor.execute('SELECT * FROM IncomeCategories')
         for row in categoryTable:
             # Split and parameterize DB entries
             self.incomeCategories.append(classes.IncomeCategory(*row))
-    
-    
+            income = self.cursor.execute('SELECT * FROM Income WHERE categoryName="'+row[0]+'"')
+            for incomeItem in income:
+                self.incomeCategories[-1].transactions.append(classes.Income(*incomeItem))
+
     # take an argument from javascript. These only work with @Slot defining the accepted and returned parameter types
     @Slot(str, float, str, bool, int, str, bool)
     def log_expense(self, name, amount, category, recurring, frequency, endDate, credit):
         self.cursor.execute('INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit) VALUES ("'+datetime.date.today().strftime('%d-%m-%y')+'", "'+name+'", '+str(amount)+', "'+category+'", '+str(recurring)+', '+str(frequency)+', "'+endDate+'",'+str(credit)+')')
         self.con.commit()
-        self.budget.expenses.append(classes.Expense(self.budget.expenses[-1].id+1,datetime.date.today().strftime('%d-%m-%y'), name, amount, category, recurring, frequency, endDate, credit))
+        # These produce index out of range errors, should default to id=0.
+        if not self.budget.expenses:
+            self.budget.expenses.append(classes.Expense(0,datetime.date.today().strftime('%d-%m-%y'), name, amount, category, recurring, frequency, endDate, credit))
+        else:
+            self.budget.expenses.append(classes.Expense(self.budget.expenses[-1].id+1,datetime.date.today().strftime('%d-%m-%y'), name, amount, category, recurring, frequency, endDate, credit))
     @Slot(str, float, str, bool, int, str)
     def log_income(self, name, amount, category, recurring, frequency, endDate):
         self.cursor.execute('INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate) VALUES ("'+datetime.date.today().strftime('%d-%m-%y')+'", "'+name+'", '+str(amount)+', "'+category+'", '+str(recurring)+', '+str(frequency)+', "'+endDate+'")')
         self.con.commit()
-        self.budget.income.append(classes.Income(self.budget.income[-1].id+1,datetime.date.today().strftime('%d-%m-%y'),name, amount, category, recurring, frequency, endDate))
+        if not self.budget.income:
+            self.budget.income.append(classes.Income(0,datetime.date.today().strftime('%d-%m-%y'),name, amount, category, recurring, frequency, endDate))
+        else:
+            self.budget.income.append(classes.Income(self.budget.income[-1].id+1,datetime.date.today().strftime('%d-%m-%y'),name, amount, category, recurring, frequency, endDate))
     @Slot(str, result=str)
     def get_expenses(self, month):
         return json.dumps([expense.__dict__ for expense in self.expenses])

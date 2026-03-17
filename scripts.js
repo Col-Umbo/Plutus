@@ -2,8 +2,6 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-
-
 // =============== Views / Routing (Switch between tabs) ===============
 const views = {
   home: $("#view-home"),
@@ -46,8 +44,6 @@ const initial = (location.hash || "#home").slice(1);
 history.replaceState({ key: initial }, "", `#${initial}`);
 setActiveView(initial, { push: false });
 
-
-
 // =============== Theme toggle (Light/Dark) ===============
 const themeToggleBtn = $("#themeToggleBtn");
 const themeLabel = $("#themeLabel");
@@ -64,6 +60,7 @@ function updateDockIcons() {
 
 function applyTheme(theme) {
   document.body.classList.toggle("light", theme === "light");
+  document.documentElement.classList.toggle("light", theme === "light");
   // label shows what you'll switch to when clicked
   if (themeLabel) themeLabel.textContent = theme === "light" ? "Dark" : "Light";
   updateDockIcons();
@@ -73,7 +70,9 @@ function getInitialTheme() {
   const saved = localStorage.getItem(THEME_KEY);
   if (saved === "light" || saved === "dark") return saved;
 
-  const prefersLight = window.matchMedia?.("(prefers-color-scheme: light)")?.matches;
+  const prefersLight = window.matchMedia?.(
+    "(prefers-color-scheme: light)",
+  )?.matches;
   return prefersLight ? "light" : "dark";
 }
 
@@ -87,8 +86,6 @@ themeToggleBtn?.addEventListener("click", () => {
 });
 
 document.addEventListener("DOMContentLoaded", updateDockIcons);
-
-
 
 // =============== Password Overlay (guarded - not built yet) ===============
 (function initPasswordOverlay() {
@@ -109,8 +106,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     if (e.key === "Escape" && overlay.classList.contains("open")) close();
   });
 })();
-
-
 
 // =============== Transactions Page ===============
 (function initTransactions() {
@@ -148,7 +143,14 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   const DEFAULT_CATEGORIES = {
     income: ["Paycheck", "Side Hustle", "Refund", "Gift"],
-    expense: ["Groceries", "Bills", "Subscriptions", "Entertainment", "Gas", "General Needs"],
+    expense: [
+      "Groceries",
+      "Bills",
+      "Subscriptions",
+      "Entertainment",
+      "Gas",
+      "General Needs",
+    ],
   };
 
   function readJSON(key, fallback) {
@@ -173,7 +175,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     if (!iso) return "";
     const [y, m, d] = iso.split("-").map(Number);
     const dt = new Date(y, m - 1, d);
-    return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    return dt.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   }
 
   function uid() {
@@ -190,7 +196,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
 
   function normalizeType(raw) {
-    const t = String(raw ?? "").toLowerCase().trim();
+    const t = String(raw ?? "")
+      .toLowerCase()
+      .trim();
     if (t === "income") return "income";
     // accept "expense", "expenses", "exp"
     if (t === "expense" || t === "expenses" || t === "exp") return "expense";
@@ -229,6 +237,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   function saveTransactions(list) {
     writeJSON(STORAGE_TX, list);
+    window.dispatchEvent(new CustomEvent("plutus:transactions-updated"));
   }
 
   function getCategoriesFromBudgetState() {
@@ -336,7 +345,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const filtered = transactions
       .filter(matchesFilter)
       .filter((t) => matchesSearch(t, q))
-      .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt - a.createdAt));
+      .sort(
+        (a, b) =>
+          (b.date || "").localeCompare(a.date || "") ||
+          b.createdAt - a.createdAt,
+      );
 
     txListEl.innerHTML = "";
 
@@ -369,11 +382,16 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
           const raw = localStorage.getItem("plutus_budget_v1");
           const s = raw ? JSON.parse(raw) : null;
           const overall = Math.max(0, Number(s?.overall ?? 0) || 0);
-          const allocations = Array.isArray(s?.allocations) ? s.allocations : [];
+          const allocations = Array.isArray(s?.allocations)
+            ? s.allocations
+            : [];
           return {
             overall,
             allocations: allocations
-              .map((a) => ({ category: String(a?.category ?? "").trim(), limit: Math.max(0, Number(a?.limit ?? 0) || 0) }))
+              .map((a) => ({
+                category: String(a?.category ?? "").trim(),
+                limit: Math.max(0, Number(a?.limit ?? 0) || 0),
+              }))
               .filter((a) => a.category),
           };
         } catch {
@@ -381,7 +399,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
         }
       })();
 
-      const allocLimitMap = new Map(budgetState.allocations.map((a) => [a.category.toLowerCase(), a.limit]));
+      const allocLimitMap = new Map(
+        budgetState.allocations.map((a) => [a.category.toLowerCase(), a.limit]),
+      );
       const spentByCat = new Map();
 
       for (const tx of transactions) {
@@ -451,7 +471,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !modalBackdrop.classList.contains("hidden")) closeModal();
+    if (e.key === "Escape" && !modalBackdrop.classList.contains("hidden"))
+      closeModal();
   });
 
   txType.addEventListener("change", populateCategories);
@@ -517,8 +538,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   render();
 })();
 
-
-
 // =============== Budget Page ===============
 (function initBudget() {
   const pieCanvas = document.querySelector("#budgetPie");
@@ -547,7 +566,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   const STORAGE_TX = "plutus_transactions_v1";
   const STORAGE_CATEGORIES = "categorized_budget_v1"; // your Categories page storage
-  const STORAGE_BUDGET = "plutus_budget_v1";         // NEW: budget state
+  const STORAGE_BUDGET = "plutus_budget_v1"; // NEW: budget state
 
   let pieChart = null;
 
@@ -564,7 +583,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
   function money(n) {
     const num = Number(n || 0);
-    return num.toLocaleString(undefined, { style: "currency", currency: "USD" });
+    return num.toLocaleString(undefined, {
+      style: "currency",
+      currency: "USD",
+    });
   }
   function showWarn(el, msg) {
     if (!el) return;
@@ -585,7 +607,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return expense
       .map((x) => {
         if (typeof x === "string") return { name: x, color: "#94a3b8" };
-        if (x && typeof x === "object" && x.name) return { name: String(x.name), color: String(x.color || "#94a3b8") };
+        if (x && typeof x === "object" && x.name)
+          return { name: String(x.name), color: String(x.color || "#94a3b8") };
         return null;
       })
       .filter(Boolean);
@@ -593,7 +616,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   function normalizeBudgetState(state) {
     const overall = Math.max(0, Number(state?.overall ?? 0) || 0);
-    const allocations = Array.isArray(state?.allocations) ? state.allocations : [];
+    const allocations = Array.isArray(state?.allocations)
+      ? state.allocations
+      : [];
     const cleaned = allocations
       .map((a) => {
         const category = String(a?.category ?? "").trim();
@@ -638,7 +663,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   function computeSpending(budgetState) {
     const tx = loadTransactions();
     const allocMap = new Map(
-      (budgetState.allocations || []).map((a) => [a.category.toLowerCase(), a.limit])
+      (budgetState.allocations || []).map((a) => [
+        a.category.toLowerCase(),
+        a.limit,
+      ]),
     );
 
     const spentByCat = new Map();
@@ -663,7 +691,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
 
   function allocatedTotal(budgetState) {
-    return (budgetState.allocations || []).reduce((sum, a) => sum + (Number(a.limit) || 0), 0);
+    return (budgetState.allocations || []).reduce(
+      (sum, a) => sum + (Number(a.limit) || 0),
+      0,
+    );
   }
 
   function remainingToAllocate(budgetState) {
@@ -673,14 +704,18 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   function rebuildCategorySelect() {
     const cats = loadCategories();
     const state = loadBudgetState();
-    const allocated = new Set((state.allocations || []).map((a) => a.category.toLowerCase()));
+    const allocated = new Set(
+      (state.allocations || []).map((a) => a.category.toLowerCase()),
+    );
 
     allocCategory.innerHTML = "";
     const available = cats.filter((c) => !allocated.has(c.name.toLowerCase()));
 
     const placeholder = document.createElement("option");
     placeholder.value = "";
-    placeholder.textContent = available.length ? "Select a category…" : "No available categories";
+    placeholder.textContent = available.length
+      ? "Select a category…"
+      : "No available categories";
     placeholder.disabled = true;
     placeholder.selected = true;
     allocCategory.appendChild(placeholder);
@@ -744,11 +779,14 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     if (allocatedEl) allocatedEl.textContent = money(allocTotal);
     if (unallocatedEl) unallocatedEl.textContent = money(unallocLimit);
-    if (unallocatedSpentEl) unallocatedSpentEl.textContent = money(unallocatedSpent);
+    if (unallocatedSpentEl)
+      unallocatedSpentEl.textContent = money(unallocatedSpent);
 
-    if (remainingToAllocateEl) remainingToAllocateEl.textContent = money(unallocLimit);
+    if (remainingToAllocateEl)
+      remainingToAllocateEl.textContent = money(unallocLimit);
 
-    if (emptyEl) emptyEl.style.display = state.allocations.length === 0 ? "block" : "none";
+    if (emptyEl)
+      emptyEl.style.display = state.allocations.length === 0 ? "block" : "none";
 
     function makeRow({ name, limit, spent, isUnallocated }) {
       const remaining = limit - spent;
@@ -769,7 +807,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       if (fill) {
         fill.style.width = `${pct}%`;
         if (!isUnallocated) {
-          fill.style.background = colorMap.get(name.toLowerCase()) || "rgba(34, 197, 94, .75)";
+          fill.style.background =
+            colorMap.get(name.toLowerCase()) || "rgba(34, 197, 94, .75)";
         }
       }
 
@@ -802,7 +841,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
         `;
         del.addEventListener("click", () => {
           const next = loadBudgetState();
-          next.allocations = next.allocations.filter((a) => a.category.toLowerCase() !== name.toLowerCase());
+          next.allocations = next.allocations.filter(
+            (a) => a.category.toLowerCase() !== name.toLowerCase(),
+          );
           saveBudgetState(next);
           render();
         });
@@ -816,12 +857,22 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     // Allocations
     for (const a of state.allocations) {
       const spent = spentByCat.get(a.category.toLowerCase()) || 0;
-      makeRow({ name: a.category, limit: a.limit, spent, isUnallocated: false });
+      makeRow({
+        name: a.category,
+        limit: a.limit,
+        spent,
+        isUnallocated: false,
+      });
     }
 
     // Unallocated bucket row (tracks spending with categories NOT in allocations)
     if (state.overall > 0) {
-      makeRow({ name: "Unallocated", limit: unallocLimit, spent: unallocatedSpent, isUnallocated: true });
+      makeRow({
+        name: "Unallocated",
+        limit: unallocLimit,
+        spent: unallocatedSpent,
+        isUnallocated: true,
+      });
     }
   }
 
@@ -833,7 +884,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     // overall UI status
     if (overallStatus) {
-      overallStatus.textContent = state.overall > 0 ? `Current: ${money(state.overall)}` : "Not set yet";
+      overallStatus.textContent =
+        state.overall > 0 ? `Current: ${money(state.overall)}` : "Not set yet";
     }
 
     // keep input enabled only when editing / not set
@@ -842,7 +894,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       overallInput.disabled = true;
     } else {
       overallInput.disabled = false;
-      if (!overallInput.value && state.overall > 0) overallInput.value = state.overall.toFixed(2);
+      if (!overallInput.value && state.overall > 0)
+        overallInput.value = state.overall.toFixed(2);
     }
 
     rebuildCategorySelect();
@@ -862,7 +915,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     const val = Math.max(0, Number(overallInput.value || 0));
     if (!Number.isFinite(val) || val <= 0) {
-      showWarn(overallWarn, "Please enter a valid overall monthly budget greater than 0.");
+      showWarn(
+        overallWarn,
+        "Please enter a valid overall monthly budget greater than 0.",
+      );
       return;
     }
 
@@ -872,7 +928,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     if (allocTotal > val) {
       showWarn(
         overallWarn,
-        `Your current allocations total ${money(allocTotal)}, which is higher than ${money(val)}. Reduce allocations first.`
+        `Your current allocations total ${money(allocTotal)}, which is higher than ${money(val)}. Reduce allocations first.`,
       );
       return;
     }
@@ -929,12 +985,14 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     if (limit > rem + 1e-9) {
       showWarn(
         allocWarn,
-        `That would exceed your overall budget. Remaining to allocate is ${money(rem)}.`
+        `That would exceed your overall budget. Remaining to allocate is ${money(rem)}.`,
       );
       return;
     }
 
-    const exists = state.allocations.some((a) => a.category.toLowerCase() === category.toLowerCase());
+    const exists = state.allocations.some(
+      (a) => a.category.toLowerCase() === category.toLowerCase(),
+    );
     if (exists) {
       showWarn(allocWarn, "That category is already allocated.");
       return;
@@ -959,8 +1017,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   // Initial render
   render();
 })();
-
-
 
 // =============== Categories Page ===============
 (function initCategories() {
@@ -1011,8 +1067,16 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       const arr = Array.isArray(budget?.[type]) ? budget[type] : [];
       out[type] = arr
         .map((item) => {
-          if (typeof item === "string") return { name: item, color: type === "income" ? "#22c55e" : "#fb7185" };
-          if (item && typeof item === "object" && item.name) return { name: String(item.name), color: String(item.color || "#94a3b8") };
+          if (typeof item === "string")
+            return {
+              name: item,
+              color: type === "income" ? "#22c55e" : "#fb7185",
+            };
+          if (item && typeof item === "object" && item.name)
+            return {
+              name: String(item.name),
+              color: String(item.color || "#94a3b8"),
+            };
           return null;
         })
         .filter(Boolean);
@@ -1062,8 +1126,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   function removeCategory(type, name) {
     const budget = loadBudget();
-    budget[type] = budget[type].filter((c) => c.name.toLowerCase() !== name.toLowerCase());
+    budget[type] = budget[type].filter(
+      (c) => c.name.toLowerCase() !== name.toLowerCase(),
+    );
     writeJSON(STORAGE_BUDGET, budget);
+    window.dispatchEvent(new CustomEvent("plutus:categories-updated"));
     render();
   }
 
@@ -1089,7 +1156,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     listEl.innerHTML = "";
 
-    if (emptyEl) emptyEl.style.display = filtered.length === 0 ? "block" : "none";
+    if (emptyEl)
+      emptyEl.style.display = filtered.length === 0 ? "block" : "none";
 
     for (const item of filtered) {
       const li = document.createElement("li");
@@ -1140,7 +1208,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !backdrop.classList.contains("hidden")) closeModal();
+    if (e.key === "Escape" && !backdrop.classList.contains("hidden"))
+      closeModal();
   });
 
   form.addEventListener("submit", (e) => {
@@ -1157,7 +1226,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     const budget = loadBudget();
 
-    const exists = budget[type].some((c) => c.name.toLowerCase() === name.toLowerCase());
+    const exists = budget[type].some(
+      (c) => c.name.toLowerCase() === name.toLowerCase(),
+    );
     if (exists) {
       alert("That category already exists.");
       return;
@@ -1165,6 +1236,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     budget[type].push({ name, color });
     writeJSON(STORAGE_BUDGET, budget);
+    window.dispatchEvent(new CustomEvent("plutus:categories-updated"));
 
     closeModal();
     render();
@@ -1182,5 +1254,586 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   searchInput?.addEventListener("input", render);
 
   // Init
+  render();
+})();
+
+// =============== Goals Page ===============
+(function initGoals() {
+  const form = $("#goalScenarioForm");
+  const scenarioTypeEl = $("#goalScenarioType");
+  const scenarioAmountEl = $("#goalScenarioAmount");
+  const scenarioCategoryEl = $("#goalScenarioCategory");
+  const scenarioNameEl = $("#goalScenarioName");
+  const scenarioNoteEl = $("#goalScenarioNote");
+  const clearBtn = $("#goalClearBtn");
+  const formWarn = $("#goalsFormWarn");
+
+  const scenarioCountEl = $("#goalScenarioCount");
+  const scenarioListEl = $("#goalsScenarioList");
+  const emptyStateEl = $("#goalsEmptyState");
+
+  const impactListEl = $("#goalsImpactList");
+  const impactEmptyEl = $("#goalsImpactEmpty");
+
+  const currentIncomeEl = $("#goalsCurrentIncome");
+  const projectedIncomeEl = $("#goalsProjectedIncome");
+  const scenarioIncomeEl = $("#goalsScenarioIncome");
+  const currentExpenseEl = $("#goalsCurrentExpense");
+  const projectedExpenseEl = $("#goalsProjectedExpense");
+  const scenarioExpenseEl = $("#goalsScenarioExpense");
+  const currentNetEl = $("#goalsCurrentNet");
+  const projectedNetEl = $("#goalsProjectedNet");
+  const netDeltaEl = $("#goalsNetDelta");
+  const budgetProjectedEl = $("#goalsBudgetProjected");
+  const budgetDeltaEl = $("#goalsBudgetDelta");
+  const budgetStatusEl = $("#goalsBudgetStatus");
+
+  if (
+    !form ||
+    !scenarioTypeEl ||
+    !scenarioAmountEl ||
+    !scenarioCategoryEl ||
+    !scenarioNameEl ||
+    !scenarioListEl ||
+    !impactListEl
+  ) {
+    return;
+  }
+
+  const STORAGE_TX = "plutus_transactions_v1";
+  const STORAGE_CATEGORIES = "categorized_budget_v1";
+  const STORAGE_BUDGET = "plutus_budget_v1";
+  const STORAGE_GOALS = "plutus_goals_scenarios_v1";
+
+  function readJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeJSON(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function money(n) {
+    const v = Number(n || 0);
+    return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  }
+
+  function uid() {
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function normalizeType(raw) {
+    const t = String(raw ?? "")
+      .toLowerCase()
+      .trim();
+    return t === "income" ? "income" : "expense";
+  }
+
+  function showWarn(msg) {
+    if (!formWarn) return;
+    formWarn.textContent = msg;
+    formWarn.classList.remove("hidden");
+  }
+
+  function hideWarn() {
+    if (!formWarn) return;
+    formWarn.textContent = "";
+    formWarn.classList.add("hidden");
+  }
+
+  function normalizeBudgetState(state) {
+    const overall = Math.max(0, Number(state?.overall ?? 0) || 0);
+    const allocationsRaw = Array.isArray(state?.allocations)
+      ? state.allocations
+      : [];
+
+    const allocations = allocationsRaw
+      .map((a) => {
+        const category = String(a?.category ?? "").trim();
+        const limit = Math.max(0, Number(a?.limit ?? 0) || 0);
+        if (!category) return null;
+        return { category, limit };
+      })
+      .filter(Boolean);
+
+    const seen = new Set();
+    const deduped = [];
+    for (const a of allocations) {
+      const key = a.category.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(a);
+    }
+
+    return { overall, allocations: deduped };
+  }
+
+  function loadBudgetState() {
+    return normalizeBudgetState(readJSON(STORAGE_BUDGET, null));
+  }
+
+  function normalizeCategoryList(list, fallbackColor) {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    const out = [];
+
+    for (const item of list) {
+      const name = typeof item === "string" ? item : item?.name;
+      if (!name) continue;
+      const clean = String(name).trim();
+      if (!clean) continue;
+
+      const key = clean.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const color =
+        typeof item === "object" && item?.color
+          ? String(item.color)
+          : fallbackColor;
+      out.push({ name: clean, color });
+    }
+    return out;
+  }
+
+  function loadCategories(type) {
+    const raw = readJSON(STORAGE_CATEGORIES, { income: [], expense: [] });
+    const income = normalizeCategoryList(raw?.income, "#22c55e");
+    const expense = normalizeCategoryList(raw?.expense, "#fb7185");
+    return type === "income" ? income : expense;
+  }
+
+  function normalizeScenario(item) {
+    const type = normalizeType(item?.type);
+    const amount = Math.max(0, Number(item?.amount ?? 0) || 0);
+    const name = String(item?.name ?? "").trim();
+    const fallbackCategory =
+      type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
+    const category =
+      String(item?.category ?? fallbackCategory).trim() || fallbackCategory;
+    const note = String(item?.note ?? "").trim();
+
+    if (!name || amount <= 0) return null;
+
+    return {
+      id: String(item?.id ?? uid()),
+      createdAt: Number(item?.createdAt ?? Date.now()),
+      type,
+      amount,
+      category,
+      name,
+      note,
+    };
+  }
+
+  function loadScenarios() {
+    const raw = readJSON(STORAGE_GOALS, []);
+    if (!Array.isArray(raw)) return [];
+    return raw.map(normalizeScenario).filter(Boolean);
+  }
+
+  function saveScenarios(list) {
+    const normalized = Array.isArray(list)
+      ? list.map(normalizeScenario).filter(Boolean)
+      : [];
+    writeJSON(STORAGE_GOALS, normalized);
+    window.dispatchEvent(new CustomEvent("plutus:goals-updated"));
+  }
+
+  function loadTransactions() {
+    const raw = readJSON(STORAGE_TX, []);
+    return Array.isArray(raw) ? raw : [];
+  }
+
+  function computeCurrentTotals(transactions) {
+    let income = 0;
+    let expense = 0;
+    const expenseByCat = new Map();
+
+    for (const tx of transactions) {
+      const type = normalizeType(tx?.type ?? tx?.txType ?? tx?.kind);
+      const amount = Math.abs(Number(tx?.amount ?? tx?.amt ?? 0) || 0);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+
+      if (type === "income") {
+        income += amount;
+        continue;
+      }
+
+      expense += amount;
+      const category =
+        String(tx?.category ?? tx?.cat ?? "Uncategorized Expense").trim() ||
+        "Uncategorized Expense";
+      const key = category.toLowerCase();
+      expenseByCat.set(key, (expenseByCat.get(key) || 0) + amount);
+    }
+
+    return { income, expense, expenseByCat };
+  }
+
+  function computeScenarioTotals(scenarios) {
+    let income = 0;
+    let expense = 0;
+    const expenseByCat = new Map();
+
+    for (const s of scenarios) {
+      const amount = Math.max(0, Number(s?.amount ?? 0) || 0);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+
+      if (s.type === "income") {
+        income += amount;
+        continue;
+      }
+
+      expense += amount;
+      const key = String(s.category ?? "Uncategorized Expense")
+        .trim()
+        .toLowerCase();
+      expenseByCat.set(key, (expenseByCat.get(key) || 0) + amount);
+    }
+
+    return { income, expense, expenseByCat };
+  }
+
+  function setDelta(el, value, { positiveGood = true } = {}) {
+    if (!el) return;
+    const delta = Number(value || 0);
+    if (Math.abs(delta) < 0.005) {
+      el.textContent = "No change";
+      el.className = "delta neutral";
+      return;
+    }
+
+    const sign = delta > 0 ? "+" : "-";
+    el.textContent = `${sign}${money(Math.abs(delta))}`;
+    const good = positiveGood ? delta > 0 : delta < 0;
+    el.className = `delta ${good ? "good" : "bad"}`;
+  }
+
+  function rebuildScenarioCategoryOptions() {
+    const type = normalizeType(scenarioTypeEl.value);
+    const priorValue = scenarioCategoryEl.value;
+    const fallback =
+      type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
+
+    const categories = loadCategories(type).map((c) => c.name);
+    if (
+      !categories.some((name) => name.toLowerCase() === fallback.toLowerCase())
+    ) {
+      categories.push(fallback);
+    }
+
+    scenarioCategoryEl.innerHTML = "";
+    for (const name of categories) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      scenarioCategoryEl.appendChild(opt);
+    }
+
+    const priorExists = categories.some(
+      (name) => name.toLowerCase() === String(priorValue).toLowerCase(),
+    );
+    scenarioCategoryEl.value = priorExists ? priorValue : categories[0];
+  }
+
+  function renderSummary(current, scenario, budgetState) {
+    const projectedIncome = current.income + scenario.income;
+    const projectedExpense = current.expense + scenario.expense;
+
+    const currentNet = current.income - current.expense;
+    const projectedNet = projectedIncome - projectedExpense;
+    const netDelta = projectedNet - currentNet;
+
+    if (currentIncomeEl) currentIncomeEl.textContent = money(current.income);
+    if (projectedIncomeEl)
+      projectedIncomeEl.textContent = money(projectedIncome);
+    if (scenarioIncomeEl) scenarioIncomeEl.textContent = money(scenario.income);
+
+    if (currentExpenseEl) currentExpenseEl.textContent = money(current.expense);
+    if (projectedExpenseEl)
+      projectedExpenseEl.textContent = money(projectedExpense);
+    if (scenarioExpenseEl)
+      scenarioExpenseEl.textContent = money(scenario.expense);
+
+    if (currentNetEl) currentNetEl.textContent = money(currentNet);
+    if (projectedNetEl) projectedNetEl.textContent = money(projectedNet);
+    setDelta(netDeltaEl, netDelta, { positiveGood: true });
+
+    if (budgetState.overall > 0) {
+      const budgetNow = budgetState.overall - current.expense;
+      const budgetProjected = budgetState.overall - projectedExpense;
+      const budgetDelta = budgetProjected - budgetNow;
+
+      if (budgetProjectedEl)
+        budgetProjectedEl.textContent = money(budgetProjected);
+      setDelta(budgetDeltaEl, budgetDelta, { positiveGood: true });
+
+      if (budgetStatusEl) {
+        if (budgetProjected >= 0) {
+          budgetStatusEl.textContent = `Projected budget remains under the cap by ${money(budgetProjected)}.`;
+        } else {
+          budgetStatusEl.textContent = `Projected budget goes over the cap by ${money(Math.abs(budgetProjected))}.`;
+        }
+      }
+    } else {
+      if (budgetProjectedEl) budgetProjectedEl.textContent = "Not set";
+      if (budgetDeltaEl) {
+        budgetDeltaEl.textContent = "No change";
+        budgetDeltaEl.className = "delta neutral";
+      }
+      if (budgetStatusEl) {
+        budgetStatusEl.textContent =
+          "Set an overall budget on the Budget tab to project remaining budget.";
+      }
+    }
+  }
+
+  function renderScenarioList(scenarios) {
+    const sorted = [...scenarios].sort(
+      (a, b) => (b.createdAt || 0) - (a.createdAt || 0),
+    );
+
+    if (scenarioCountEl) {
+      scenarioCountEl.textContent = `${sorted.length} scenario${sorted.length === 1 ? "" : "s"}`;
+    }
+
+    scenarioListEl.innerHTML = "";
+    if (emptyStateEl)
+      emptyStateEl.style.display = sorted.length ? "none" : "block";
+
+    for (let i = 0; i < sorted.length; i++) {
+      const li = document.createElement("li");
+      li.className = "goals-row";
+
+      const typeCell = document.createElement("div");
+      typeCell.className = "goals-type";
+      typeCell.innerHTML = `<span class="cat-type-badge">${sorted[i].type === "income" ? "Income" : "Expense"}</span>`;
+
+      const scenarioCell = document.createElement("div");
+      scenarioCell.className = "goals-scenario";
+      scenarioCell.innerHTML = `
+        <div class="title">${escapeHtml(sorted[i].name)}</div>
+        <div class="muted">${sorted[i].note ? escapeHtml(sorted[i].note) : "No notes"}</div>
+      `;
+
+      const categoryCell = document.createElement("div");
+      categoryCell.className = "goals-category";
+      categoryCell.textContent = sorted[i].category;
+
+      const amountCell = document.createElement("div");
+      amountCell.className = "goals-amount";
+      amountCell.textContent = money(sorted[i].amount);
+
+      const impactCell = document.createElement("div");
+      impactCell.className = `goals-net-impact ${sorted[i].type === "income" ? "good" : "bad"}`;
+      let netImpact = 0;
+      for (let j = i; j < sorted.length; j++) {
+        if (sorted[j].category === sorted[i].category) {
+          netImpact += sorted[j].amount;
+        }
+      }
+      impactCell.textContent = `${sorted[i].type === "income" ? "+" : "-"}${money(netImpact)}`;
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const del = document.createElement("button");
+      del.className = "delete-btn";
+      del.type = "button";
+      del.title = "Delete scenario";
+      del.dataset.deleteId = sorted[i].id;
+      del.innerHTML = `
+        <img class="tableIcon"
+          src="Icons/delete_dark-mode.png"
+          data-dark="Icons/delete_dark-mode.png"
+          data-light="Icons/delete_light-mode.png"
+          alt="Delete scenario" />
+      `;
+
+      actions.appendChild(del);
+      li.append(
+        typeCell,
+        scenarioCell,
+        categoryCell,
+        amountCell,
+        impactCell,
+        actions,
+      );
+      scenarioListEl.appendChild(li);
+    }
+  }
+
+  function renderImpact(current, scenario, budgetState) {
+    const allocations = Array.isArray(budgetState.allocations)
+      ? budgetState.allocations
+      : [];
+    impactListEl.innerHTML = "";
+
+    if (!allocations.length) {
+      if (impactEmptyEl) impactEmptyEl.style.display = "block";
+      return;
+    }
+    if (impactEmptyEl) impactEmptyEl.style.display = "none";
+
+    for (const alloc of allocations) {
+      const key = alloc.category.toLowerCase();
+      const currentSpent = current.expenseByCat.get(key) || 0;
+      const scenarioAdded = scenario.expenseByCat.get(key) || 0;
+      const projectedSpent = currentSpent + scenarioAdded;
+      const remaining = alloc.limit - projectedSpent;
+      const over = projectedSpent > alloc.limit && alloc.limit > 0;
+
+      const li = document.createElement("li");
+      li.className = `goals-impact-row ${over ? "over" : ""}`;
+
+      const categoryCell = document.createElement("div");
+      categoryCell.className = "goals-impact-category";
+      categoryCell.textContent = alloc.category;
+
+      const limitCell = document.createElement("div");
+      limitCell.className = "goals-impact-limit";
+      limitCell.textContent = money(alloc.limit);
+
+      const currentCell = document.createElement("div");
+      currentCell.className = "goals-impact-current";
+      currentCell.textContent = money(currentSpent);
+
+      const scenarioCell = document.createElement("div");
+      scenarioCell.className = "goals-impact-scenario";
+      scenarioCell.textContent = money(scenarioAdded);
+
+      const projectedCell = document.createElement("div");
+      projectedCell.className = "goals-impact-projected";
+      projectedCell.textContent = money(projectedSpent);
+
+      const remainingCell = document.createElement("div");
+      remainingCell.className = "goals-impact-remaining";
+      remainingCell.textContent = money(remaining);
+
+      li.append(
+        categoryCell,
+        limitCell,
+        currentCell,
+        scenarioCell,
+        projectedCell,
+        remainingCell,
+      );
+      impactListEl.appendChild(li);
+    }
+  }
+
+  function render() {
+    const transactions = loadTransactions();
+    const scenarios = loadScenarios();
+    const budgetState = loadBudgetState();
+
+    const currentTotals = computeCurrentTotals(transactions);
+    const scenarioTotals = computeScenarioTotals(scenarios);
+
+    rebuildScenarioCategoryOptions();
+    renderSummary(currentTotals, scenarioTotals, budgetState);
+    renderScenarioList(scenarios);
+    renderImpact(currentTotals, scenarioTotals, budgetState);
+    updateDockIcons();
+  }
+
+  scenarioTypeEl.addEventListener("change", rebuildScenarioCategoryOptions);
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    hideWarn();
+
+    const type = normalizeType(scenarioTypeEl.value);
+    const amount = Math.max(0, Number(scenarioAmountEl.value || 0) || 0);
+    const name = scenarioNameEl.value.trim();
+    const note = scenarioNoteEl?.value?.trim() || "";
+    const fallbackCategory =
+      type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
+    const category =
+      String(scenarioCategoryEl.value || fallbackCategory).trim() ||
+      fallbackCategory;
+
+    if (!name) {
+      showWarn("Please enter a scenario name.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showWarn("Please enter a valid amount greater than 0.");
+      return;
+    }
+
+    const list = loadScenarios();
+    list.push({
+      id: uid(),
+      createdAt: Date.now(),
+      type,
+      amount,
+      category,
+      name,
+      note,
+    });
+    saveScenarios(list);
+
+    form.reset();
+    scenarioTypeEl.value = "expense";
+    rebuildScenarioCategoryOptions();
+    render();
+  });
+
+  clearBtn?.addEventListener("click", () => {
+    const scenarios = loadScenarios();
+    if (!scenarios.length) return;
+    if (!confirm("Clear all what-if scenarios?")) return;
+
+    saveScenarios([]);
+    form.reset();
+    scenarioTypeEl.value = "expense";
+    rebuildScenarioCategoryOptions();
+    render();
+  });
+
+  scenarioListEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-delete-id]");
+    if (!btn) return;
+
+    const id = String(btn.dataset.deleteId || "");
+    if (!id) return;
+
+    const next = loadScenarios().filter((s) => s.id !== id);
+    saveScenarios(next);
+    render();
+  });
+
+  window.addEventListener("storage", (e) => {
+    if (
+      [STORAGE_TX, STORAGE_CATEGORIES, STORAGE_BUDGET, STORAGE_GOALS].includes(
+        e.key,
+      )
+    ) {
+      render();
+    }
+  });
+
+  window.addEventListener("plutus:transactions-updated", render);
+  window.addEventListener("plutus:categories-updated", render);
+  window.addEventListener("plutus:budget-updated", render);
+  window.addEventListener("plutus:goals-updated", render);
+
   render();
 })();
