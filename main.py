@@ -82,10 +82,10 @@ class CallHandler(QObject):
             (today, name, amount, category, recurring, frequency, endDate)
         )
         self.con.commit()
+        new_id = self.cursor.lastrowid
+        income = classes.Income(new_id, today, name, amount, category, recurring, frequency, endDate)
+        self.income.append(income)
 
-    new_id = self.cursor.lastrowid
-    income = classes.Income(new_id, today, name, amount, category, recurring, frequency, endDate)
-    self.income.append(income)
     @Slot(str, result=str)
     def get_expenses(self, month):
         return json.dumps([expense.__dict__ for expense in self.expenses])
