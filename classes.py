@@ -45,10 +45,11 @@ class Income(Transaction):
         self.transactionType = "Income"
 class Budget():
     # Currently unused. Will replace CallHandler's expenses and income later.
+    date : str
     amount : float
     expenses : [Expense]
     income : [Income]
-    def __init__(self,expenses:[Expense],income:[Income], amount:float):
+    def __init__(self,income:[Income],expense:[Expense], date:str, amount:float):
         self.amount = amount
         self.expenses = expenses
         self.income = income
