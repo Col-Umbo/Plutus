@@ -47,7 +47,6 @@ class CallHandler(QObject):
         categoryTable = self.cursor.fetchall()
         for row in categoryTable:
             # Split and parameterize DB entries
-            print(*row)
             self.expenseCategories.append(classes.ExpenseCategory(*row))
             expenses = self.cursor.execute('SELECT * FROM Expenses WHERE categoryName="'+row[0]+'"')
             for expense in expenses:
