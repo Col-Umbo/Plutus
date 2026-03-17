@@ -31,23 +31,29 @@ class CallHandler(QObject):
         self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'", 0.00)')
         self.con.commit()
         #
-        income = self.cursor.execute('SELECT * FROM Income')
+        self.cursor.execute('SELECT * FROM Income')
+        income = self.cursor.fetchall()
         for row in income:
             self.income.append(classes.Income(*row))
-        expenses = self.cursor.execute('SELECT * FROM Expenses')
+        self.cursor.execute('SELECT * FROM Expenses')
+        expenses = self.cursor.fetchall()
         for row in expenses:
             self.expenses.append(classes.Expense(*row))
-        budget = self.cursor.execute('SELECT amount FROM Budgets WHERE date="'+datetime.date.today().strftime('%m-%y')+'"')
+        self.cursor.execute('SELECT amount FROM Budgets WHERE date="'+datetime.date.today().strftime('%m-%y')+'"')
+        budget = self.cursor.fetchall()
         for row in budget:
             self.budget = classes.Budget(self.income, self.expenses, *row)
-        categoryTable = self.cursor.execute('SELECT * FROM ExpenseCategories')
+        self.cursor.execute('SELECT * FROM ExpenseCategories')
+        categoryTable = self.cursor.fetchall()
         for row in categoryTable:
             # Split and parameterize DB entries
+            print(*row)
             self.expenseCategories.append(classes.ExpenseCategory(*row))
             expenses = self.cursor.execute('SELECT * FROM Expenses WHERE categoryName="'+row[0]+'"')
             for expense in expenses:
                 self.expenseCategories[-1].transactions.append(classes.Expense(*expense))
-        categoryTable = self.cursor.execute('SELECT * FROM IncomeCategories')
+        self.cursor.execute('SELECT * FROM IncomeCategories')
+        categoryTable = self.cursor.fetchall()
         for row in categoryTable:
             # Split and parameterize DB entries
             self.incomeCategories.append(classes.IncomeCategory(*row))
@@ -153,7 +159,9 @@ if __name__ == '__main__':
         cursor.execute('CREATE TABLE IF NOT EXISTS Expenses (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, credit BOOL, FOREIGN KEY (categoryName) REFERENCES ExpenseCategories(name))')
         cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY, name TEXT, totalBalance FLOAT, remBalance FLOAT, monthlyAmount FLOAT, paidOff BOOL)')
         # Default categories
-        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Bills", 0.00, "#ffffff"), ("Groceries", 0.00, "#ffffff"), ("Subscriptions", 0.00, "#ffffff");')
+        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Bills", 0.00, "#ffffff");')
+        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Groceries", 0.00, "#ffffff");')
+        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Subscriptions", 0.00, "#ffffff");')
         cursor.execute('INSERT INTO IncomeCategories (name, amount, color) VALUES ("Paycheck", 0.00, "#ffffff")')
         con.commit()
         con.close()

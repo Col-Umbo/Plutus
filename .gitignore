@@ -4,3 +4,4 @@ dist/**
 main.spec
 __pycache__/**
 plutus.db
+plutus.db-journal
