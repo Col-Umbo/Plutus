@@ -88,16 +88,16 @@ class CallHandler(QObject):
 
     @Slot(str, result=str)
     def get_expenses(self, month):
-        return json.dumps([expense.__dict__ for expense in self.expenses])
+        return json.dumps([expense.__dict__ for expense in self.expenses],default=vars)
     @Slot(str, result=str)
     def get_income(self, month):
-        return json.dumps([income.__dict__ for income in self.income])
+        return json.dumps([income.__dict__ for income in self.income],default=vars)
     @Slot(result=str)
     def get_expense_categories(self):
-        return json.dumps([category.__dict__ for category in self.expenseCategories])
+        return json.dumps([category.__dict__ for category in self.expenseCategories],default=vars)
     @Slot(result=str)
     def get_income_categories(self):
-        return json.dumps([category.__dict__ for category in self.incomeCategories])
+        return json.dumps([category.__dict__ for category in self.incomeCategories],default=vars)
     @Slot(bool, str, float, str)
     def add_category(self, categoryType, name, amount, color):
         if categoryType is False:
