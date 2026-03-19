@@ -9,13 +9,6 @@ class Transaction():
     recurring : bool
     frequency : int
     endDate : str
-    # These methods may end up being unnecessary, as all this information is passed within the class instance itself to the frontend.
-    def getDate():
-        return self.date
-    def getAmount():
-        return self.amount
-    def getCategory():
-        return self.category
 
 class Expense(Transaction):
     credit : bool
@@ -30,8 +23,6 @@ class Expense(Transaction):
         self.endDate = endDate
         self.credit = credit
         self.transactionType = "Expense"
-    def getCredit():
-        return self.credit
 class Income(Transaction):
     def __init__(self,id:int,date:str,name:str,amount:float,category:str,recurring:bool,frequency:int,endDate:str):
         self.id = id
@@ -59,8 +50,6 @@ class Category():
     amount : float
     color : str
     transactions:[Transaction]
-    def getAmount():
-        return self.amount
 
 class ExpenseCategory(Category):
     def __init__(self, name:str, color:str, amount=0.00):
