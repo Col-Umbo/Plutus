@@ -104,12 +104,44 @@ class CallHandler(QObject):
     @Slot(str, result=str)
     def get_income(self, month):
         return json.dumps([income.__dict__ for income in self.income],default=vars)
+    @Slot(int)
+    def delete_expense(self, id):
+        self.cursor.execute("DELETE FROM Expenses WHERE id=?",(id,))
+        self.con.commit()
+        for expense in self.budget.expenses:
+            if expense.id == id:
+                self.budget.expenses.remove(expense)
+                break
+    @Slot(int)
+    def delete_income(self, id):
+        self.cursor.execute("DELETE FROM Income WHERE id=?",(id,))
+        self.con.commit()
+        for income in self.budget.income:
+            if income.id == id:
+                self.budget.income.remove(income)
+                break
     @Slot(result=str)
     def get_expense_categories(self):
         return json.dumps([category.__dict__ for category in self.expenseCategories],default=vars)
     @Slot(result=str)
     def get_income_categories(self):
         return json.dumps([category.__dict__ for category in self.incomeCategories],default=vars)
+    @slot(str)
+    def delete_expense_category(self, name):
+        self.cursor.execute("DELETE FROM ExpenseCategories WHERE name=?",(name,))
+        self.con.commit()
+        for category in self.expenseCategories:
+            if category.name == name:
+                self.expenseCategories.remove(category)
+                break
+    @slot(str)
+    def delete_income_category(self, name):
+        self.cursor.execute("DELETE FROM IncomeCategories WHERE name=?",(name,))
+        self.con.commit()
+        for category in self.incomeCategories:
+            if category.name == name:
+                self.incomeCategories.remove(category)
+                break
     @Slot(bool, str, float, str)
     def add_category(self, categoryType, name, amount, color):
         if categoryType is False:
