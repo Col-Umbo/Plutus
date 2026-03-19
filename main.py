@@ -59,6 +59,13 @@ class CallHandler(QObject):
             income = self.cursor.execute('SELECT * FROM Income WHERE categoryName="'+row[0]+'"')
             for incomeItem in income:
                 self.incomeCategories[-1].transactions.append(classes.Income(*incomeItem))
+    
+    # time identifier / time keys (more for Budget and Goals pages)    
+    def current_month_key(self):
+        return datetime.date.today().strftime('%m-%y')
+
+    def current_timestamp_ms(self):
+        return int(datetime.datetime.now().timestamp() * 1000)
 
     # take an argument from javascript. These only work with @Slot defining the accepted and returned parameter types
     @Slot(str, float, str, bool, int, str, bool)
@@ -118,12 +125,118 @@ class CallHandler(QObject):
             )
             self.incomeCategories.append(classes.IncomeCategory(name, color, amount))
         self.con.commit()
+    
+    # I (Ethan) added this
+    @Slot(float)
+    def set_budget_amount(self, amount):
+        month = self.current_month_key()
+        self.cursor.execute(
+            '''
+            INSERT INTO Budgets (date, amount)
+            VALUES (?, ?)
+            ON CONFLICT(date) DO UPDATE SET amount=excluded.amount
+            ''',
+            (month, amount)
+        )
+        self.con.commit()
+    @Slot(result=str)
+    def get_budget_amount(self):
+        month = self.current_month_key()
+        self.cursor.execute(
+            'SELECT amount FROM Budgets WHERE date = ?',
+            (month,)
+        )
+        row = self.cursor.fetchone()
+        amount = float(row[0]) if row else 0.0
+        return json.dumps({
+            "date": month,
+            "amount": amount
+        })
+    @Slot(str, float)
+    def upsert_budget_allocation(self, category, limitAmount):
+        month = self.current_month_key()
+        self.cursor.execute(
+            '''
+            INSERT INTO BudgetAllocations (date, category, limitAmount)
+            VALUES (?, ?, ?)
+            ON CONFLICT(date, category) DO UPDATE SET limitAmount=excluded.limitAmount
+            ''',
+            (month, category, limitAmount)
+        )
+        self.con.commit()
+    @Slot(str)
+    def delete_budget_allocation(self, category):
+        month = self.current_month_key()
+        self.cursor.execute(
+            'DELETE FROM BudgetAllocations WHERE date = ? AND category = ?',
+            (month, category)
+        )
+        self.con.commit()
+    @Slot(result=str)
+    def get_budget_allocations(self):
+        month = self.current_month_key()
+        self.cursor.execute(
+            'SELECT category, limitAmount FROM BudgetAllocations WHERE date = ? ORDER BY category COLLATE NOCASE',
+            (month,)
+        )
+        rows = self.cursor.fetchall()
+        return json.dumps([
+            {"category": row[0], "limit": float(row[1])}
+            for row in rows
+        ])
+    @Slot(str, float, str, str, str)
+    def add_goal_scenario(self, scenarioType, amount, category, name, note):
+        createdAt = self.current_timestamp_ms()
+        self.cursor.execute(
+            '''
+            INSERT INTO GoalScenarios (scenarioType, amount, category, name, note, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
+            (scenarioType, amount, category, name, note, createdAt)
+        )
+        self.con.commit()
+    @Slot(result=str)
+    def get_goal_scenarios(self):
+        self.cursor.execute(
+            '''
+            SELECT id, scenarioType, amount, category, name, note, createdAt
+            FROM GoalScenarios
+            ORDER BY createdAt DESC, id DESC
+            '''
+        )
+        rows = self.cursor.fetchall()
+        return json.dumps([
+            {
+                "id": row[0],
+                "type": row[1],
+                "amount": float(row[2]),
+                "category": row[3],
+                "name": row[4],
+                "note": row[5] or "",
+                "createdAt": int(row[6] or 0)
+            }
+            for row in rows
+        ])
+    @Slot(int)
+    def delete_goal_scenario(self, scenario_id):
+        self.cursor.execute(
+            'DELETE FROM GoalScenarios WHERE id = ?',
+            (scenario_id,)
+        )
+        self.con.commit()
+    @Slot()
+    def clear_goal_scenarios(self):
+        self.cursor.execute('DELETE FROM GoalScenarios')
+        self.con.commit()
+    # end of items added
+    
     @Slot(str)
     def delete_expense_category(self, name):
         self.cursor.execute('DELETE FROM ExpenseCategories WHERE name="'+name+'"')
     @Slot(str)
     def delete_income_category(self, name):
         self.cursor.execute('DELETE FROM IncomeCategories WHERE name="'+name+'"')
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -156,7 +269,12 @@ if __name__ == '__main__':
         cursor.execute('CREATE TABLE IF NOT EXISTS IncomeCategories (name TEXT PRIMARY KEY, amount FLOAT, color TEXT)')
         cursor.execute('CREATE TABLE IF NOT EXISTS Income (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, FOREIGN KEY (categoryNAME) REFERENCES IncomeCategories(name))')
         cursor.execute('CREATE TABLE IF NOT EXISTS Expenses (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, credit BOOL, FOREIGN KEY (categoryName) REFERENCES ExpenseCategories(name))')
-        cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY, name TEXT, totalBalance FLOAT, remBalance FLOAT, monthlyAmount FLOAT, paidOff BOOL)')
+        # cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY, name TEXT, totalBalance FLOAT, remBalance FLOAT, monthlyAmount FLOAT, paidOff BOOL)')
+        
+        # I (Ethan) added this
+        cursor.execute('CREATE TABLE IF NOT EXISTS BudgetAllocations (date TEXT, category TEXT, limitAmount FLOAT, PRIMARY KEY (date, category))')
+        cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY AUTOINCREMENT, scenarioType TEXT, amount FLOAT, category TEXT, name TEXT, note TEXT, createdAt INTEGER)')
+        
         # Default categories
         cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Bills", 0.00, "#ffffff");')
         cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Groceries", 0.00, "#ffffff");')

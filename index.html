@@ -14,8 +14,7 @@
 
 <body>
     <!-- =============== Backend Connection =============== -->
-    <script>
-        // This opens the connection with the Python end
+   <script>
         new QWebChannel(qt.webChannelTransport, function (channel) {
             window.handler = channel.objects.handler;
         });

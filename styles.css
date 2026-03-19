@@ -210,9 +210,21 @@ body.light label {
 
 body.light input,
 body.light select {
-  background: rgba(0, 0, 0, 0.04);
+  background-color: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(0, 0, 0, 0.12);
   color: rgba(0, 0, 0, 0.88);
+}
+
+body.light select option {
+  background-color: #ffffff;
+  color: #111111;
+}
+
+body.light select option:hover,
+body.light select option:checked,
+body.light select option:focus {
+  background-color: #dbeafe;
+  color: #111111;
 }
 
 body.light input:focus,
@@ -561,13 +573,35 @@ label {
 
 input,
 select {
-  width: 100%;
-  padding: 10px 10px;
+  padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: var(--text);
   outline: none;
+}
+
+input {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+select {
+  appearance: menulist;
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+select option {
+  background: #1b1f2e;
+  color: #ffffff;
+}
+
+select option:hover,
+select option:checked,
+select option:focus {
+  background-color: #334155;
+  color: #ffffff;
 }
 
 input[type="color"] {
@@ -1019,16 +1053,6 @@ label {
   gap: 6px;
   font-size: 13px;
   color: var(--muted);
-}
-
-input,
-select {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
-  outline: none;
 }
 
 input:focus,
@@ -1688,7 +1712,6 @@ body.light .goals-impact-row {
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
 }
-
 
 
 

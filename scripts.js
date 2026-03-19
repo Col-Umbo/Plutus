@@ -123,6 +123,13 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
 
 
+// ==================== Summary Page (Reserved)====================
+
+
+
+
+
+
 // ==================== Transactions Page ====================
 (function initTransactions() {
   // If transactions view isn't in DOM, do nothing
@@ -131,7 +138,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   const txForm = $("#txForm");
   if (!openAddModalBtn || !modalBackdrop || !txForm) return;
 
-  // DOM
+  // DOM (Document Object Model)
   const incomeTotalEl = $("#incomeTotal");
   const expenseTotalEl = $("#expenseTotal");
   const txListEl = $("#txList");
@@ -439,26 +446,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   const listEl = document.querySelector("#budgetList");
   const emptyEl = document.querySelector("#budgetEmptyState");
 
-  // If budget DOM not present, do nothing.
   if (!pieCanvas || !overallForm || !allocForm || !listEl) return;
-
-  const STORAGE_TX = "plutus_transactions_v1";
-  const STORAGE_CATEGORIES = "categorized_budget_v1"; // your Categories page storage
-  const STORAGE_BUDGET = "plutus_budget_v1"; // NEW: budget state
 
   let pieChart = null;
 
-  function readJSON(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  function writeJSON(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
   function money(n) {
     const num = Number(n || 0);
     return num.toLocaleString(undefined, {
@@ -466,96 +457,88 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       currency: "USD",
     });
   }
+
   function showWarn(el, msg) {
     if (!el) return;
     el.textContent = msg;
     el.classList.remove("hidden");
   }
+
   function hideWarn(el) {
     if (!el) return;
     el.textContent = "";
     el.classList.add("hidden");
   }
 
-  function loadCategories() {
-    // We only allow allocating EXPENSE categories
-    const cats = readJSON(STORAGE_CATEGORIES, { income: [], expense: [] });
-    const expense = Array.isArray(cats?.expense) ? cats.expense : [];
-    // normalize to {name,color}
-    return expense
-      .map((x) => {
-        if (typeof x === "string") return { name: x, color: "#94a3b8" };
-        if (x && typeof x === "object" && x.name)
-          return { name: String(x.name), color: String(x.color || "#94a3b8") };
-        return null;
-      })
-      .filter(Boolean);
+  function handlerCall(methodName, ...args) {
+    return new Promise((resolve) => {
+      if (!window.handler || typeof window.handler[methodName] !== "function") {
+        resolve(null);
+        return;
+      }
+      window.handler[methodName](...args, function (result) {
+        resolve(result);
+      });
+    });
   }
 
-  function normalizeBudgetState(state) {
-    const overall = Math.max(0, Number(state?.overall ?? 0) || 0);
-    const allocations = Array.isArray(state?.allocations)
-      ? state.allocations
+  async function loadBudgetState() {
+    const budgetJson = await handlerCall("get_budget_amount");
+    const allocJson = await handlerCall("get_budget_allocations");
+
+    const budget = JSON.parse(budgetJson || '{"amount":0}');
+    const allocations = JSON.parse(allocJson || "[]");
+
+    return {
+      overall: Math.max(0, Number(budget.amount || 0)),
+      allocations: Array.isArray(allocations)
+        ? allocations.map((a) => ({
+            category: String(a.category || "").trim(),
+            limit: Math.max(0, Number(a.limit || 0)),
+          })).filter((a) => a.category)
+        : [],
+    };
+  }
+
+  async function loadExpenseCategories() {
+    const json = await handlerCall("get_expense_categories");
+    const list = JSON.parse(json || "[]");
+    return Array.isArray(list)
+      ? list.map((x) => ({
+          name: String(x.name || "").trim(),
+          color: String(x.color || "#94a3b8"),
+        })).filter((x) => x.name)
       : [];
-    const cleaned = allocations
-      .map((a) => {
-        const category = String(a?.category ?? "").trim();
-        const limit = Math.max(0, Number(a?.limit ?? 0) || 0);
-        if (!category) return null;
-        return { category, limit };
-      })
-      .filter(Boolean);
-
-    // de-dupe by category (case-insensitive), keep first
-    const seen = new Set();
-    const deduped = [];
-    for (const a of cleaned) {
-      const k = a.category.toLowerCase();
-      if (seen.has(k)) continue;
-      seen.add(k);
-      deduped.push(a);
-    }
-
-    return { overall, allocations: deduped };
   }
 
-  function loadBudgetState() {
-    const raw = readJSON(STORAGE_BUDGET, null);
-    const normalized = normalizeBudgetState(raw);
-    writeJSON(STORAGE_BUDGET, normalized);
-    return normalized;
+  async function loadTransactions() {
+    const json = await handlerCall("get_expenses", "");
+    const list = JSON.parse(json || "[]");
+    return Array.isArray(list) ? list : [];
   }
 
-  function saveBudgetState(next) {
-    const normalized = normalizeBudgetState(next);
-    writeJSON(STORAGE_BUDGET, normalized);
-    // Let other parts of the app know budget changed
-    window.dispatchEvent(new CustomEvent("plutus:budget-updated"));
+  function allocatedTotal(state) {
+    return (state.allocations || []).reduce(
+      (sum, a) => sum + (Number(a.limit) || 0),
+      0,
+    );
   }
 
-  function loadTransactions() {
-    const tx = readJSON(STORAGE_TX, []);
-    return Array.isArray(tx) ? tx : [];
+  function remainingToAllocate(state) {
+    return Math.max(0, state.overall - allocatedTotal(state));
   }
 
-  function computeSpending(budgetState) {
-    const tx = loadTransactions();
+  function computeSpending(transactions, state) {
     const allocMap = new Map(
-      (budgetState.allocations || []).map((a) => [
-        a.category.toLowerCase(),
-        a.limit,
-      ]),
+      (state.allocations || []).map((a) => [a.category.toLowerCase(), a.limit]),
     );
 
     const spentByCat = new Map();
     let unallocatedSpent = 0;
 
-    for (const t of tx) {
-      const type = String(t?.type ?? "").toLowerCase();
-      if (type !== "expense") continue;
-
-      const amt = Math.abs(Number(t?.amount ?? 0) || 0);
-      const cat = String(t?.category ?? "Uncategorized").trim();
+    for (const t of transactions) {
+      const amt = Math.abs(Number(t.amount || 0));
+      const cat = String(t.category || t.categoryName || "Uncategorized").trim();
       const key = cat.toLowerCase();
 
       if (allocMap.has(key)) {
@@ -568,20 +551,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return { spentByCat, unallocatedSpent };
   }
 
-  function allocatedTotal(budgetState) {
-    return (budgetState.allocations || []).reduce(
-      (sum, a) => sum + (Number(a.limit) || 0),
-      0,
-    );
-  }
-
-  function remainingToAllocate(budgetState) {
-    return Math.max(0, budgetState.overall - allocatedTotal(budgetState));
-  }
-
-  function rebuildCategorySelect() {
-    const cats = loadCategories();
-    const state = loadBudgetState();
+  async function rebuildCategorySelect(state) {
+    const cats = await loadExpenseCategories();
     const allocated = new Set(
       (state.allocations || []).map((a) => a.category.toLowerCase()),
     );
@@ -606,8 +577,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     }
   }
 
-  function renderPie(state) {
-    const cats = loadCategories();
+  async function renderPie(state) {
+    const cats = await loadExpenseCategories();
     const colorMap = new Map(cats.map((c) => [c.name.toLowerCase(), c.color]));
 
     const labels = [];
@@ -645,10 +616,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     });
   }
 
-  function renderList(state) {
-    const cats = loadCategories();
-    const colorMap = new Map(cats.map((c) => [c.name.toLowerCase(), c.color]));
-    const { spentByCat, unallocatedSpent } = computeSpending(state);
+  async function renderList(state) {
+    const transactions = await loadTransactions();
+    const { spentByCat, unallocatedSpent } = computeSpending(transactions, state);
 
     listEl.innerHTML = "";
 
@@ -657,14 +627,12 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     if (allocatedEl) allocatedEl.textContent = money(allocTotal);
     if (unallocatedEl) unallocatedEl.textContent = money(unallocLimit);
-    if (unallocatedSpentEl)
-      unallocatedSpentEl.textContent = money(unallocatedSpent);
+    if (unallocatedSpentEl) unallocatedSpentEl.textContent = money(unallocatedSpent);
+    if (remainingToAllocateEl) remainingToAllocateEl.textContent = money(unallocLimit);
 
-    if (remainingToAllocateEl)
-      remainingToAllocateEl.textContent = money(unallocLimit);
-
-    if (emptyEl)
+    if (emptyEl) {
       emptyEl.style.display = state.allocations.length === 0 ? "block" : "none";
+    }
 
     function makeRow({ name, limit, spent, isUnallocated }) {
       const remaining = limit - spent;
@@ -682,13 +650,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       `;
 
       const fill = nameCell.querySelector(".fill");
-      if (fill) {
-        fill.style.width = `${pct}%`;
-        if (!isUnallocated) {
-          fill.style.background =
-            colorMap.get(name.toLowerCase()) || "rgba(34, 197, 94, .75)";
-        }
-      }
+      if (fill) fill.style.width = `${pct}%`;
 
       const limitCell = document.createElement("div");
       limitCell.className = "budget-limit";
@@ -717,13 +679,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
                data-light="Icons/delete_light-mode.png"
                alt="Delete" />
         `;
-        del.addEventListener("click", () => {
-          const next = loadBudgetState();
-          next.allocations = next.allocations.filter(
-            (a) => a.category.toLowerCase() !== name.toLowerCase(),
-          );
-          saveBudgetState(next);
-          render();
+        del.addEventListener("click", async () => {
+          if (!window.handler) return;
+          window.handler.delete_budget_allocation(name);
+          setTimeout(render, 50);
         });
         actCell.appendChild(del);
       }
@@ -732,7 +691,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       listEl.appendChild(li);
     }
 
-    // Allocations
     for (const a of state.allocations) {
       const spent = spentByCat.get(a.category.toLowerCase()) || 0;
       makeRow({
@@ -743,7 +701,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       });
     }
 
-    // Unallocated bucket row (tracks spending with categories NOT in allocations)
     if (state.overall > 0) {
       makeRow({
         name: "Unallocated",
@@ -754,40 +711,37 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     }
   }
 
-  function render() {
+  async function render() {
     hideWarn(overallWarn);
     hideWarn(allocWarn);
 
-    const state = loadBudgetState();
+    const state = await loadBudgetState();
 
-    // overall UI status
     if (overallStatus) {
       overallStatus.textContent =
         state.overall > 0 ? `Current: ${money(state.overall)}` : "Not set yet";
     }
 
-    // keep input enabled only when editing / not set
     if (state.overall > 0 && !overallInput.dataset.editing) {
       overallInput.value = state.overall.toFixed(2);
       overallInput.disabled = true;
     } else {
       overallInput.disabled = false;
-      if (!overallInput.value && state.overall > 0)
+      if (!overallInput.value && state.overall > 0) {
         overallInput.value = state.overall.toFixed(2);
+      }
     }
 
-    rebuildCategorySelect();
-    renderPie(state);
-    renderList(state);
+    await rebuildCategorySelect(state);
+    await renderPie(state);
+    await renderList(state);
 
-    // remaining checkbox behavior
     const rem = remainingToAllocate(state);
     allocRemaining.disabled = rem <= 0;
     if (rem <= 0) allocRemaining.checked = false;
   }
 
-  // Events: Overall Budget save
-  overallForm.addEventListener("submit", (e) => {
+  overallForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideWarn(overallWarn);
 
@@ -800,7 +754,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       return;
     }
 
-    const state = loadBudgetState();
+    const state = await loadBudgetState();
     const allocTotal = allocatedTotal(state);
 
     if (allocTotal > val) {
@@ -811,13 +765,12 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       return;
     }
 
-    state.overall = val;
-    saveBudgetState(state);
+    if (!window.handler) return;
+    window.handler.set_budget_amount(val);
 
     overallInput.dataset.editing = "";
     overallInput.disabled = true;
-
-    render();
+    setTimeout(render, 50);
   });
 
   overallEditBtn?.addEventListener("click", () => {
@@ -827,21 +780,19 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     overallInput.select();
   });
 
-  // Allocate remaining checkbox
-  allocRemaining.addEventListener("change", () => {
-    const state = loadBudgetState();
+  allocRemaining.addEventListener("change", async () => {
+    const state = await loadBudgetState();
     const rem = remainingToAllocate(state);
     if (allocRemaining.checked && rem > 0) {
       allocLimit.value = rem.toFixed(2);
     }
   });
 
-  // Add allocation
-  allocForm.addEventListener("submit", (e) => {
+  allocForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideWarn(allocWarn);
 
-    const state = loadBudgetState();
+    const state = await loadBudgetState();
     if (state.overall <= 0) {
       showWarn(allocWarn, "Set your overall monthly budget first.");
       return;
@@ -876,23 +827,13 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       return;
     }
 
-    state.allocations.push({ category, limit });
-    saveBudgetState(state);
+    if (!window.handler) return;
+    window.handler.upsert_budget_allocation(category, limit);
 
-    // reset form bits
     allocForm.reset();
-    render();
+    setTimeout(render, 50);
   });
 
-  // Re-render when other tabs modify things
-  window.addEventListener("storage", (e) => {
-    if ([STORAGE_CATEGORIES, STORAGE_TX, STORAGE_BUDGET].includes(e.key)) {
-      render();
-    }
-  });
-  window.addEventListener("plutus:budget-updated", render);
-
-  // Initial render
   render();
 })();
 
@@ -1113,31 +1054,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return;
   }
 
-  const STORAGE_TX = "plutus_transactions_v1";
-  const STORAGE_CATEGORIES = "categorized_budget_v1";
-  const STORAGE_BUDGET = "plutus_budget_v1";
-  const STORAGE_GOALS = "plutus_goals_scenarios_v1";
-
-  function readJSON(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  function writeJSON(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
   function money(n) {
     const v = Number(n || 0);
     return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
-  }
-
-  function uid() {
-    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
   }
 
   function escapeHtml(str) {
@@ -1150,9 +1069,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
 
   function normalizeType(raw) {
-    const t = String(raw ?? "")
-      .toLowerCase()
-      .trim();
+    const t = String(raw ?? "").toLowerCase().trim();
     return t === "income" ? "income" : "expense";
   }
 
@@ -1168,108 +1085,69 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     formWarn.classList.add("hidden");
   }
 
-  function normalizeBudgetState(state) {
-    const overall = Math.max(0, Number(state?.overall ?? 0) || 0);
-    const allocationsRaw = Array.isArray(state?.allocations)
-      ? state.allocations
+  function handlerCall(methodName, ...args) {
+    return new Promise((resolve) => {
+      if (!window.handler || typeof window.handler[methodName] !== "function") {
+        resolve(null);
+        return;
+      }
+      window.handler[methodName](...args, function (result) {
+        resolve(result);
+      });
+    });
+  }
+
+  async function loadTransactions() {
+    const expenseJson = await handlerCall("get_expenses", "");
+    const incomeJson = await handlerCall("get_income", "");
+
+    const expenses = JSON.parse(expenseJson || "[]").map((x) => ({
+      ...x,
+      type: "expense",
+    }));
+    const income = JSON.parse(incomeJson || "[]").map((x) => ({
+      ...x,
+      type: "income",
+    }));
+
+    return [...expenses, ...income];
+  }
+
+  async function loadCategories(type) {
+    const method = type === "income" ? "get_income_categories" : "get_expense_categories";
+    const json = await handlerCall(method);
+    const list = JSON.parse(json || "[]");
+
+    return Array.isArray(list)
+      ? list.map((x) => ({
+          name: String(x.name || "").trim(),
+          color: String(x.color || "#94a3b8"),
+        })).filter((x) => x.name)
       : [];
-
-    const allocations = allocationsRaw
-      .map((a) => {
-        const category = String(a?.category ?? "").trim();
-        const limit = Math.max(0, Number(a?.limit ?? 0) || 0);
-        if (!category) return null;
-        return { category, limit };
-      })
-      .filter(Boolean);
-
-    const seen = new Set();
-    const deduped = [];
-    for (const a of allocations) {
-      const key = a.category.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(a);
-    }
-
-    return { overall, allocations: deduped };
   }
 
-  function loadBudgetState() {
-    return normalizeBudgetState(readJSON(STORAGE_BUDGET, null));
-  }
+  async function loadBudgetState() {
+    const budgetJson = await handlerCall("get_budget_amount");
+    const allocJson = await handlerCall("get_budget_allocations");
 
-  function normalizeCategoryList(list, fallbackColor) {
-    if (!Array.isArray(list)) return [];
-    const seen = new Set();
-    const out = [];
-
-    for (const item of list) {
-      const name = typeof item === "string" ? item : item?.name;
-      if (!name) continue;
-      const clean = String(name).trim();
-      if (!clean) continue;
-
-      const key = clean.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const color =
-        typeof item === "object" && item?.color
-          ? String(item.color)
-          : fallbackColor;
-      out.push({ name: clean, color });
-    }
-    return out;
-  }
-
-  function loadCategories(type) {
-    const raw = readJSON(STORAGE_CATEGORIES, { income: [], expense: [] });
-    const income = normalizeCategoryList(raw?.income, "#22c55e");
-    const expense = normalizeCategoryList(raw?.expense, "#fb7185");
-    return type === "income" ? income : expense;
-  }
-
-  function normalizeScenario(item) {
-    const type = normalizeType(item?.type);
-    const amount = Math.max(0, Number(item?.amount ?? 0) || 0);
-    const name = String(item?.name ?? "").trim();
-    const fallbackCategory =
-      type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
-    const category =
-      String(item?.category ?? fallbackCategory).trim() || fallbackCategory;
-    const note = String(item?.note ?? "").trim();
-
-    if (!name || amount <= 0) return null;
+    const budget = JSON.parse(budgetJson || '{"amount":0}');
+    const allocations = JSON.parse(allocJson || "[]");
 
     return {
-      id: String(item?.id ?? uid()),
-      createdAt: Number(item?.createdAt ?? Date.now()),
-      type,
-      amount,
-      category,
-      name,
-      note,
+      overall: Math.max(0, Number(budget.amount || 0)),
+      allocations: Array.isArray(allocations)
+        ? allocations.map((a) => ({
+            category: String(a.category || "").trim(),
+            limit: Math.max(0, Number(a.limit || 0)),
+          })).filter((a) => a.category)
+        : [],
     };
   }
 
-  function loadScenarios() {
-    const raw = readJSON(STORAGE_GOALS, []);
-    if (!Array.isArray(raw)) return [];
-    return raw.map(normalizeScenario).filter(Boolean);
-  }
-
-  function saveScenarios(list) {
-    const normalized = Array.isArray(list)
-      ? list.map(normalizeScenario).filter(Boolean)
-      : [];
-    writeJSON(STORAGE_GOALS, normalized);
-    window.dispatchEvent(new CustomEvent("plutus:goals-updated"));
-  }
-
-  function loadTransactions() {
-    const raw = readJSON(STORAGE_TX, []);
-    return Array.isArray(raw) ? raw : [];
+  async function loadScenarios() {
+    const json = await handlerCall("get_goal_scenarios");
+    const list = JSON.parse(json || "[]");
+    return Array.isArray(list) ? list : [];
   }
 
   function computeCurrentTotals(transactions) {
@@ -1279,7 +1157,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     for (const tx of transactions) {
       const type = normalizeType(tx?.type ?? tx?.txType ?? tx?.kind);
-      const amount = Math.abs(Number(tx?.amount ?? tx?.amt ?? 0) || 0);
+      const amount = Math.abs(Number(tx?.amount ?? 0) || 0);
       if (!Number.isFinite(amount) || amount <= 0) continue;
 
       if (type === "income") {
@@ -1289,7 +1167,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
       expense += amount;
       const category =
-        String(tx?.category ?? tx?.cat ?? "Uncategorized Expense").trim() ||
+        String(tx?.category ?? tx?.categoryName ?? "Uncategorized Expense").trim() ||
         "Uncategorized Expense";
       const key = category.toLowerCase();
       expenseByCat.set(key, (expenseByCat.get(key) || 0) + amount);
@@ -1307,7 +1185,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       const amount = Math.max(0, Number(s?.amount ?? 0) || 0);
       if (!Number.isFinite(amount) || amount <= 0) continue;
 
-      if (s.type === "income") {
+      if (normalizeType(s.type) === "income") {
         income += amount;
         continue;
       }
@@ -1337,16 +1215,14 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     el.className = `delta ${good ? "good" : "bad"}`;
   }
 
-  function rebuildScenarioCategoryOptions() {
+  async function rebuildScenarioCategoryOptions() {
     const type = normalizeType(scenarioTypeEl.value);
     const priorValue = scenarioCategoryEl.value;
     const fallback =
       type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
 
-    const categories = loadCategories(type).map((c) => c.name);
-    if (
-      !categories.some((name) => name.toLowerCase() === fallback.toLowerCase())
-    ) {
+    const categories = (await loadCategories(type)).map((c) => c.name);
+    if (!categories.some((name) => name.toLowerCase() === fallback.toLowerCase())) {
       categories.push(fallback);
     }
 
@@ -1373,15 +1249,12 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const netDelta = projectedNet - currentNet;
 
     if (currentIncomeEl) currentIncomeEl.textContent = money(current.income);
-    if (projectedIncomeEl)
-      projectedIncomeEl.textContent = money(projectedIncome);
+    if (projectedIncomeEl) projectedIncomeEl.textContent = money(projectedIncome);
     if (scenarioIncomeEl) scenarioIncomeEl.textContent = money(scenario.income);
 
     if (currentExpenseEl) currentExpenseEl.textContent = money(current.expense);
-    if (projectedExpenseEl)
-      projectedExpenseEl.textContent = money(projectedExpense);
-    if (scenarioExpenseEl)
-      scenarioExpenseEl.textContent = money(scenario.expense);
+    if (projectedExpenseEl) projectedExpenseEl.textContent = money(projectedExpense);
+    if (scenarioExpenseEl) scenarioExpenseEl.textContent = money(scenario.expense);
 
     if (currentNetEl) currentNetEl.textContent = money(currentNet);
     if (projectedNetEl) projectedNetEl.textContent = money(projectedNet);
@@ -1392,8 +1265,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       const budgetProjected = budgetState.overall - projectedExpense;
       const budgetDelta = budgetProjected - budgetNow;
 
-      if (budgetProjectedEl)
-        budgetProjectedEl.textContent = money(budgetProjected);
+      if (budgetProjectedEl) budgetProjectedEl.textContent = money(budgetProjected);
       setDelta(budgetDeltaEl, budgetDelta, { positiveGood: true });
 
       if (budgetStatusEl) {
@@ -1418,7 +1290,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   function renderScenarioList(scenarios) {
     const sorted = [...scenarios].sort(
-      (a, b) => (b.createdAt || 0) - (a.createdAt || 0),
+      (a, b) => (Number(b.createdAt || 0) - Number(a.createdAt || 0)) || (Number(b.id || 0) - Number(a.id || 0)),
     );
 
     if (scenarioCountEl) {
@@ -1426,8 +1298,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     }
 
     scenarioListEl.innerHTML = "";
-    if (emptyStateEl)
-      emptyStateEl.style.display = sorted.length ? "none" : "block";
+    if (emptyStateEl) emptyStateEl.style.display = sorted.length ? "none" : "block";
 
     for (let i = 0; i < sorted.length; i++) {
       const li = document.createElement("li");
@@ -1454,13 +1325,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
       const impactCell = document.createElement("div");
       impactCell.className = `goals-net-impact ${sorted[i].type === "income" ? "good" : "bad"}`;
-      let netImpact = 0;
-      for (let j = i; j < sorted.length; j++) {
-        if (sorted[j].category === sorted[i].category) {
-          netImpact += sorted[j].amount;
-        }
-      }
-      impactCell.textContent = `${sorted[i].type === "income" ? "+" : "-"}${money(netImpact)}`;
+      impactCell.textContent = `${sorted[i].type === "income" ? "+" : "-"}${money(sorted[i].amount)}`;
 
       const actions = document.createElement("div");
       actions.className = "actions";
@@ -1469,7 +1334,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       del.className = "delete-btn";
       del.type = "button";
       del.title = "Delete scenario";
-      del.dataset.deleteId = sorted[i].id;
+      del.dataset.deleteId = String(sorted[i].id);
       del.innerHTML = `
         <img class="tableIcon"
           src="Icons/delete_dark-mode.png"
@@ -1479,14 +1344,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       `;
 
       actions.appendChild(del);
-      li.append(
-        typeCell,
-        scenarioCell,
-        categoryCell,
-        amountCell,
-        impactCell,
-        actions,
-      );
+      li.append(typeCell, scenarioCell, categoryCell, amountCell, impactCell, actions);
       scenarioListEl.appendChild(li);
     }
   }
@@ -1550,15 +1408,15 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     }
   }
 
-  function render() {
-    const transactions = loadTransactions();
-    const scenarios = loadScenarios();
-    const budgetState = loadBudgetState();
+  async function render() {
+    const transactions = await loadTransactions();
+    const scenarios = await loadScenarios();
+    const budgetState = await loadBudgetState();
 
     const currentTotals = computeCurrentTotals(transactions);
     const scenarioTotals = computeScenarioTotals(scenarios);
 
-    rebuildScenarioCategoryOptions();
+    await rebuildScenarioCategoryOptions();
     renderSummary(currentTotals, scenarioTotals, budgetState);
     renderScenarioList(scenarios);
     renderImpact(currentTotals, scenarioTotals, budgetState);
@@ -1567,7 +1425,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   scenarioTypeEl.addEventListener("change", rebuildScenarioCategoryOptions);
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideWarn();
 
@@ -1578,8 +1436,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const fallbackCategory =
       type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
     const category =
-      String(scenarioCategoryEl.value || fallbackCategory).trim() ||
-      fallbackCategory;
+      String(scenarioCategoryEl.value || fallbackCategory).trim() || fallbackCategory;
 
     if (!name) {
       showWarn("Please enter a scenario name.");
@@ -1591,62 +1448,33 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       return;
     }
 
-    const list = loadScenarios();
-    list.push({
-      id: uid(),
-      createdAt: Date.now(),
-      type,
-      amount,
-      category,
-      name,
-      note,
-    });
-    saveScenarios(list);
+    if (!window.handler) return;
+    window.handler.add_goal_scenario(type, amount, category, name, note);
 
     form.reset();
     scenarioTypeEl.value = "expense";
-    rebuildScenarioCategoryOptions();
-    render();
+    setTimeout(render, 50);
   });
 
   clearBtn?.addEventListener("click", () => {
-    const scenarios = loadScenarios();
-    if (!scenarios.length) return;
     if (!confirm("Clear all what-if scenarios?")) return;
-
-    saveScenarios([]);
+    if (!window.handler) return;
+    window.handler.clear_goal_scenarios();
     form.reset();
     scenarioTypeEl.value = "expense";
-    rebuildScenarioCategoryOptions();
-    render();
+    setTimeout(render, 50);
   });
 
   scenarioListEl.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-delete-id]");
     if (!btn) return;
 
-    const id = String(btn.dataset.deleteId || "");
-    if (!id) return;
+    const id = Number(btn.dataset.deleteId || 0);
+    if (!id || !window.handler) return;
 
-    const next = loadScenarios().filter((s) => s.id !== id);
-    saveScenarios(next);
-    render();
+    window.handler.delete_goal_scenario(id);
+    setTimeout(render, 50);
   });
-
-  window.addEventListener("storage", (e) => {
-    if (
-      [STORAGE_TX, STORAGE_CATEGORIES, STORAGE_BUDGET, STORAGE_GOALS].includes(
-        e.key,
-      )
-    ) {
-      render();
-    }
-  });
-
-  window.addEventListener("plutus:transactions-updated", render);
-  window.addEventListener("plutus:categories-updated", render);
-  window.addEventListener("plutus:budget-updated", render);
-  window.addEventListener("plutus:goals-updated", render);
 
   render();
 })();
