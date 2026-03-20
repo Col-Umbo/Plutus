@@ -260,6 +260,14 @@ class CallHandler(QObject):
     def clear_goal_scenarios(self):
         self.cursor.execute('DELETE FROM GoalScenarios')
         self.con.commit()
+    @Slot(str, str, result=float)
+    def get_net_impact(self, scenarioType, category):
+        self.cursor.execute('SELECT amount FROM GoalScenarios WHERE scenarioType=? AND category=?',(scenarioType,category))
+        rows = self.cursor.fetchall()
+        amount = 0.00
+        for row in rows:
+            amount+=row
+        return amount
     # end of items added
     
     @Slot(str)
