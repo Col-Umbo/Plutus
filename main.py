@@ -216,6 +216,8 @@ class CallHandler(QObject):
             {"category": row[0], "limit": float(row[1])}
             for row in rows
         ])
+    
+    # GOALS
     @Slot(str, float, str, str, str)
     def add_goal_scenario(self, scenarioType, amount, category, name, note):
         createdAt = self.current_timestamp_ms()

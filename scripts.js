@@ -2,10 +2,6 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-
-
-
-
 // ==================== Views / Routing (Switch between tabs) ====================
 const views = {
   home: $("#view-home"),
@@ -47,10 +43,6 @@ window.addEventListener("popstate", (e) => {
 const initial = (location.hash || "#home").slice(1);
 history.replaceState({ key: initial }, "", `#${initial}`);
 setActiveView(initial, { push: false });
-
-
-
-
 
 // ==================== Theme toggle (Light/Dark) ====================
 const themeToggleBtn = $("#themeToggleBtn");
@@ -95,10 +87,6 @@ themeToggleBtn?.addEventListener("click", () => {
 
 document.addEventListener("DOMContentLoaded", updateDockIcons);
 
-
-
-
-
 // ==================== Password Overlay (guarded - not built yet) ====================
 (function initPasswordOverlay() {
   const overlay = $("#overlay");
@@ -119,16 +107,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   });
 })();
 
-
-
-
-
 // ==================== Summary Page (Reserved)====================
-
-
-
-
-
 
 // ==================== Transactions Page ====================
 (function initTransactions() {
@@ -186,7 +165,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       .replaceAll("'", "&#039;");
   }
 
-    function populateCategories() {
+  function populateCategories() {
     if (!window.handler || !txCategory) return;
 
     const type = txType.value; // "income" or "expense"
@@ -394,7 +373,15 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const credit = false;
 
     if (type === "expense") {
-      handler.log_expense(name, amount, category, repeats, frequency, endDate, credit);
+      handler.log_expense(
+        name,
+        amount,
+        category,
+        repeats,
+        frequency,
+        endDate,
+        credit,
+      );
     } else {
       handler.log_income(name, amount, category, repeats, frequency, endDate);
     }
@@ -418,10 +405,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   populateCategories();
   loadTransactionsFromBackend();
 })();
-
-
-
-
 
 // ==================== Budget Page ====================
 (function initBudget() {
@@ -492,10 +475,12 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return {
       overall: Math.max(0, Number(budget.amount || 0)),
       allocations: Array.isArray(allocations)
-        ? allocations.map((a) => ({
-            category: String(a.category || "").trim(),
-            limit: Math.max(0, Number(a.limit || 0)),
-          })).filter((a) => a.category)
+        ? allocations
+            .map((a) => ({
+              category: String(a.category || "").trim(),
+              limit: Math.max(0, Number(a.limit || 0)),
+            }))
+            .filter((a) => a.category)
         : [],
     };
   }
@@ -504,10 +489,12 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const json = await handlerCall("get_expense_categories");
     const list = JSON.parse(json || "[]");
     return Array.isArray(list)
-      ? list.map((x) => ({
-          name: String(x.name || "").trim(),
-          color: String(x.color || "#94a3b8"),
-        })).filter((x) => x.name)
+      ? list
+          .map((x) => ({
+            name: String(x.name || "").trim(),
+            color: String(x.color || "#94a3b8"),
+          }))
+          .filter((x) => x.name)
       : [];
   }
 
@@ -538,7 +525,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     for (const t of transactions) {
       const amt = Math.abs(Number(t.amount || 0));
-      const cat = String(t.category || t.categoryName || "Uncategorized").trim();
+      const cat = String(
+        t.category || t.categoryName || "Uncategorized",
+      ).trim();
       const key = cat.toLowerCase();
 
       if (allocMap.has(key)) {
@@ -618,7 +607,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   async function renderList(state) {
     const transactions = await loadTransactions();
-    const { spentByCat, unallocatedSpent } = computeSpending(transactions, state);
+    const { spentByCat, unallocatedSpent } = computeSpending(
+      transactions,
+      state,
+    );
 
     listEl.innerHTML = "";
 
@@ -627,8 +619,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     if (allocatedEl) allocatedEl.textContent = money(allocTotal);
     if (unallocatedEl) unallocatedEl.textContent = money(unallocLimit);
-    if (unallocatedSpentEl) unallocatedSpentEl.textContent = money(unallocatedSpent);
-    if (remainingToAllocateEl) remainingToAllocateEl.textContent = money(unallocLimit);
+    if (unallocatedSpentEl)
+      unallocatedSpentEl.textContent = money(unallocatedSpent);
+    if (remainingToAllocateEl)
+      remainingToAllocateEl.textContent = money(unallocLimit);
 
     if (emptyEl) {
       emptyEl.style.display = state.allocations.length === 0 ? "block" : "none";
@@ -837,10 +831,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   render();
 })();
 
-
-
-
-
 // ==================== Categories Page ====================
 (function initCategories() {
   const openBtn = $("#openCatModal");
@@ -912,8 +902,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
           .filter((x) => matchesSearch(x, q))
           .sort((a, b) => a.name.localeCompare(b.name));
 
-        if (catIncomeTotalEl) catIncomeTotalEl.textContent = String(income.length);
-        if (catExpenseTotalEl) catExpenseTotalEl.textContent = String(expense.length);
+        if (catIncomeTotalEl)
+          catIncomeTotalEl.textContent = String(income.length);
+        if (catExpenseTotalEl)
+          catExpenseTotalEl.textContent = String(expense.length);
 
         listEl.innerHTML = "";
 
@@ -1007,10 +999,6 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   renderCategoriesFromBackend();
 })();
 
-
-
-
-
 // ==================== Goals Page ====================
 (function initGoals() {
   const form = $("#goalScenarioForm");
@@ -1069,7 +1057,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
 
   function normalizeType(raw) {
-    const t = String(raw ?? "").toLowerCase().trim();
+    const t = String(raw ?? "")
+      .toLowerCase()
+      .trim();
     return t === "income" ? "income" : "expense";
   }
 
@@ -1114,15 +1104,18 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   }
 
   async function loadCategories(type) {
-    const method = type === "income" ? "get_income_categories" : "get_expense_categories";
+    const method =
+      type === "income" ? "get_income_categories" : "get_expense_categories";
     const json = await handlerCall(method);
     const list = JSON.parse(json || "[]");
 
     return Array.isArray(list)
-      ? list.map((x) => ({
-          name: String(x.name || "").trim(),
-          color: String(x.color || "#94a3b8"),
-        })).filter((x) => x.name)
+      ? list
+          .map((x) => ({
+            name: String(x.name || "").trim(),
+            color: String(x.color || "#94a3b8"),
+          }))
+          .filter((x) => x.name)
       : [];
   }
 
@@ -1136,10 +1129,12 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     return {
       overall: Math.max(0, Number(budget.amount || 0)),
       allocations: Array.isArray(allocations)
-        ? allocations.map((a) => ({
-            category: String(a.category || "").trim(),
-            limit: Math.max(0, Number(a.limit || 0)),
-          })).filter((a) => a.category)
+        ? allocations
+            .map((a) => ({
+              category: String(a.category || "").trim(),
+              limit: Math.max(0, Number(a.limit || 0)),
+            }))
+            .filter((a) => a.category)
         : [],
     };
   }
@@ -1167,8 +1162,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
       expense += amount;
       const category =
-        String(tx?.category ?? tx?.categoryName ?? "Uncategorized Expense").trim() ||
-        "Uncategorized Expense";
+        String(
+          tx?.category ?? tx?.categoryName ?? "Uncategorized Expense",
+        ).trim() || "Uncategorized Expense";
       const key = category.toLowerCase();
       expenseByCat.set(key, (expenseByCat.get(key) || 0) + amount);
     }
@@ -1222,7 +1218,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
 
     const categories = (await loadCategories(type)).map((c) => c.name);
-    if (!categories.some((name) => name.toLowerCase() === fallback.toLowerCase())) {
+    if (
+      !categories.some((name) => name.toLowerCase() === fallback.toLowerCase())
+    ) {
       categories.push(fallback);
     }
 
@@ -1249,12 +1247,15 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const netDelta = projectedNet - currentNet;
 
     if (currentIncomeEl) currentIncomeEl.textContent = money(current.income);
-    if (projectedIncomeEl) projectedIncomeEl.textContent = money(projectedIncome);
+    if (projectedIncomeEl)
+      projectedIncomeEl.textContent = money(projectedIncome);
     if (scenarioIncomeEl) scenarioIncomeEl.textContent = money(scenario.income);
 
     if (currentExpenseEl) currentExpenseEl.textContent = money(current.expense);
-    if (projectedExpenseEl) projectedExpenseEl.textContent = money(projectedExpense);
-    if (scenarioExpenseEl) scenarioExpenseEl.textContent = money(scenario.expense);
+    if (projectedExpenseEl)
+      projectedExpenseEl.textContent = money(projectedExpense);
+    if (scenarioExpenseEl)
+      scenarioExpenseEl.textContent = money(scenario.expense);
 
     if (currentNetEl) currentNetEl.textContent = money(currentNet);
     if (projectedNetEl) projectedNetEl.textContent = money(projectedNet);
@@ -1265,7 +1266,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       const budgetProjected = budgetState.overall - projectedExpense;
       const budgetDelta = budgetProjected - budgetNow;
 
-      if (budgetProjectedEl) budgetProjectedEl.textContent = money(budgetProjected);
+      if (budgetProjectedEl)
+        budgetProjectedEl.textContent = money(budgetProjected);
       setDelta(budgetDeltaEl, budgetDelta, { positiveGood: true });
 
       if (budgetStatusEl) {
@@ -1290,7 +1292,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
   function renderScenarioList(scenarios) {
     const sorted = [...scenarios].sort(
-      (a, b) => (Number(b.createdAt || 0) - Number(a.createdAt || 0)) || (Number(b.id || 0) - Number(a.id || 0)),
+      (a, b) =>
+        Number(b.createdAt || 0) - Number(a.createdAt || 0) ||
+        Number(b.id || 0) - Number(a.id || 0),
     );
 
     if (scenarioCountEl) {
@@ -1298,7 +1302,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     }
 
     scenarioListEl.innerHTML = "";
-    if (emptyStateEl) emptyStateEl.style.display = sorted.length ? "none" : "block";
+    if (emptyStateEl)
+      emptyStateEl.style.display = sorted.length ? "none" : "block";
 
     for (let i = 0; i < sorted.length; i++) {
       const li = document.createElement("li");
@@ -1324,8 +1329,15 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       amountCell.textContent = money(sorted[i].amount);
 
       const impactCell = document.createElement("div");
+      let netImpact = 0;
       impactCell.className = `goals-net-impact ${sorted[i].type === "income" ? "good" : "bad"}`;
-      impactCell.textContent = `${sorted[i].type === "income" ? "+" : "-"}${money(sorted[i].amount)}`;
+      for (let j = i; j < sorted.length; j++) {
+        if (sorted[j].category === sorted[i].category) {
+          netImpact += parseFloat(sorted[j].amount);
+        }
+      }
+      impactCell.textContent += `${sorted[i].type === "income" ? "+" : "-"} ${money(netImpact)}`;
+      // impactCell.textContent = `${sorted[i].type === "income" ? "+" : "-"}${money(sorted[i].amount)}`;
 
       const actions = document.createElement("div");
       actions.className = "actions";
@@ -1344,7 +1356,14 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       `;
 
       actions.appendChild(del);
-      li.append(typeCell, scenarioCell, categoryCell, amountCell, impactCell, actions);
+      li.append(
+        typeCell,
+        scenarioCell,
+        categoryCell,
+        amountCell,
+        impactCell,
+        actions,
+      );
       scenarioListEl.appendChild(li);
     }
   }
@@ -1436,7 +1455,8 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const fallbackCategory =
       type === "income" ? "Uncategorized Income" : "Uncategorized Expense";
     const category =
-      String(scenarioCategoryEl.value || fallbackCategory).trim() || fallbackCategory;
+      String(scenarioCategoryEl.value || fallbackCategory).trim() ||
+      fallbackCategory;
 
     if (!name) {
       showWarn("Please enter a scenario name.");
