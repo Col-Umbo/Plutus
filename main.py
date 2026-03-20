@@ -126,7 +126,7 @@ class CallHandler(QObject):
     @Slot(result=str)
     def get_income_categories(self):
         return json.dumps([category.__dict__ for category in self.incomeCategories],default=vars)
-    @slot(str)
+    @Slot(str)
     def delete_expense_category(self, name):
         self.cursor.execute("DELETE FROM ExpenseCategories WHERE name=?",(name,))
         self.con.commit()
@@ -134,7 +134,7 @@ class CallHandler(QObject):
             if category.name == name:
                 self.expenseCategories.remove(category)
                 break
-    @slot(str)
+    @Slot(str)
     def delete_income_category(self, name):
         self.cursor.execute("DELETE FROM IncomeCategories WHERE name=?",(name,))
         self.con.commit()
@@ -306,7 +306,7 @@ if __name__ == '__main__':
         # I (Ethan) added this
         cursor.execute('CREATE TABLE IF NOT EXISTS BudgetAllocations (date TEXT, category TEXT, limitAmount FLOAT, PRIMARY KEY (date, category))')
         cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY AUTOINCREMENT, scenarioType TEXT, amount FLOAT, category TEXT, name TEXT, note TEXT, createdAt INTEGER)')
-        
+        cursor.execute('CREATE TABLE IF NOT EXISTS GoalScenarios (id INTEGER PRIMARY KEY AUTOINCREMENT, scenarioType, amount, category, name, note, createdAt)')
         # Default categories
         cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Bills", 0.00, "#ffffff");')
         cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Groceries", 0.00, "#ffffff");')
