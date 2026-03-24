@@ -47,7 +47,7 @@ class CallHandler(QObject):
         categoryTable = self.cursor.fetchall()
         for row in categoryTable:
             # Split and parameterize DB entries
-            self.expenseCategories.append(classes.ExpenseCategory(*row))
+            self.expenseCategories.append(classes.ExpenseCategory(row[0], row[2], row[1]))
             expenses = self.cursor.execute('SELECT * FROM Expenses WHERE categoryName="'+row[0]+'"')
             for expense in expenses:
                 self.expenseCategories[-1].transactions.append(classes.Expense(*expense))
@@ -55,7 +55,7 @@ class CallHandler(QObject):
         categoryTable = self.cursor.fetchall()
         for row in categoryTable:
             # Split and parameterize DB entries
-            self.incomeCategories.append(classes.IncomeCategory(*row))
+            self.incomeCategories.append(classes.IncomeCategory(row[0], row[2], row[1]))
             income = self.cursor.execute('SELECT * FROM Income WHERE categoryName="'+row[0]+'"')
             for incomeItem in income:
                 self.incomeCategories[-1].transactions.append(classes.Income(*incomeItem))
@@ -318,10 +318,10 @@ if __name__ == '__main__':
         cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY AUTOINCREMENT, scenarioType TEXT, amount FLOAT, category TEXT, name TEXT, note TEXT, createdAt INTEGER)')
         cursor.execute('CREATE TABLE IF NOT EXISTS GoalScenarios (id INTEGER PRIMARY KEY AUTOINCREMENT, scenarioType, amount, category, name, note, createdAt)')
         # Default categories
-        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Bills", 0.00, "#ffffff");')
-        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Groceries", 0.00, "#ffffff");')
-        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Subscriptions", 0.00, "#ffffff");')
-        cursor.execute('INSERT INTO IncomeCategories (name, amount, color) VALUES ("Paycheck", 0.00, "#ffffff")')
+        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Bills", 0.00, "#fc0519");')
+        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Groceries", 0.00, "#0765fc");')
+        cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Subscriptions", 0.00, "#fce307");')
+        cursor.execute('INSERT INTO IncomeCategories (name, amount, color) VALUES ("Paycheck", 0.00, "#10f900")')
         con.commit()
         con.close()
     app = QApplication(sys.argv)
