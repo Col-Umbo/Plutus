@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
         # Load html file
         if os.path.isdir('_internal'):
             # This conditional is necessary in order for the executable to load index.html properly. From there, everything else should load just fine.
-            local_html = QUrl.fromLocalFile(QFileInfo("_internal"+os.pathsep+"index.html").absoluteFilePath())
+            local_html = QUrl.fromLocalFile(QFileInfo("_internal/index.html").absoluteFilePath())
         else:
             local_html = QUrl.fromLocalFile(QFileInfo("index.html").absoluteFilePath())
         self.browser.setUrl(local_html)

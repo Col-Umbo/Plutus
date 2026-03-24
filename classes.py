@@ -35,7 +35,6 @@ class Income(Transaction):
         self.endDate = endDate
         self.transactionType = "Income"
 class Budget():
-    # Currently unused. Will replace CallHandler's expenses and income later.
     date : str
     amount : float
     expenses : [Expense]
