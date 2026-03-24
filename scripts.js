@@ -298,9 +298,36 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       amt.className = `amount ${t.type}`;
       amt.textContent = money(Math.abs(Number(t.amount || 0)));
 
+      // Delete Button Segment
       const actions = document.createElement("div");
       actions.className = "actions";
-      actions.innerHTML = "";
+
+      const del = document.createElement("button");
+      del.className = "delete-btn";
+      del.type = "button";
+      del.title = "Delete transaction";
+      del.innerHTML = `
+        <img class="tableIcon"
+          src="Icons/delete_dark-mode.png"
+          data-dark="Icons/delete_dark-mode.png"
+          data-light="Icons/delete_light-mode.png"
+          alt="Delete" />
+      `;
+
+      del.addEventListener("click", () => {
+        if (!window.handler) return;
+
+        if (t.type === "expense") {
+          window.handler.delete_expense(Number(t.id));
+        } else {
+          window.handler.delete_income(Number(t.id));
+        }
+
+        setTimeout(loadTransactionsFromBackend, 50);
+      });
+
+      actions.appendChild(del);
+      // end of delete button segment
 
       const repeat = document.createElement("div");
       repeat.className = "repeat muted";
@@ -476,11 +503,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       overall: Math.max(0, Number(budget.amount || 0)),
       allocations: Array.isArray(allocations)
         ? allocations
-            .map((a) => ({
-              category: String(a.category || "").trim(),
-              limit: Math.max(0, Number(a.limit || 0)),
-            }))
-            .filter((a) => a.category)
+          .map((a) => ({
+            category: String(a.category || "").trim(),
+            limit: Math.max(0, Number(a.limit || 0)),
+          }))
+          .filter((a) => a.category)
         : [],
     };
   }
@@ -490,11 +517,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     const list = JSON.parse(json || "[]");
     return Array.isArray(list)
       ? list
-          .map((x) => ({
-            name: String(x.name || "").trim(),
-            color: String(x.color || "#94a3b8"),
-          }))
-          .filter((x) => x.name)
+        .map((x) => ({
+          name: String(x.name || "").trim(),
+          color: String(x.color || "#94a3b8"),
+        }))
+        .filter((x) => x.name)
       : [];
   }
 
@@ -659,7 +686,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       remainingCell.textContent = money(Math.max(0, remaining));
 
       const actCell = document.createElement("div");
-      actCell.className = "actions";
+      actCell.className = "budget-actions";
 
       if (!isUnallocated) {
         const del = document.createElement("button");
@@ -929,9 +956,40 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
           color.className = "cat-swatch";
           color.innerHTML = `<span class="dot" style="background:${item.color}"></span><span class="muted">${item.color}</span>`;
 
+          // Delete Button
           const actions = document.createElement("div");
           actions.className = "cat-actions";
-          actions.innerHTML = "";
+
+          const del = document.createElement("button");
+          del.className = "delete-btn";
+          del.type = "button";
+          del.title = "Delete category";
+          del.innerHTML = `
+            <img class="tableIcon"
+              src="Icons/delete_dark-mode.png"
+              data-dark="Icons/delete_dark-mode.png"
+              data-light="Icons/delete_light-mode.png"
+              alt="Delete" />
+          `;
+
+          del.addEventListener("click", () => {
+            if (!window.handler) return;
+
+            if (item.type === "expense") {
+              window.handler.delete_expense_category(item.name);
+            } else {
+              window.handler.delete_income_category(item.name);
+            }
+
+            setTimeout(() => {
+              renderCategoriesFromBackend();
+              if (typeof populateCategories === "function") populateCategories();
+              if (typeof updateDockIcons === "function") updateDockIcons();
+            }, 50);
+          });
+
+          actions.appendChild(del);
+          // end of delete button segment
 
           li.append(type, name, color, actions);
           listEl.appendChild(li);
@@ -1111,11 +1169,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     return Array.isArray(list)
       ? list
-          .map((x) => ({
-            name: String(x.name || "").trim(),
-            color: String(x.color || "#94a3b8"),
-          }))
-          .filter((x) => x.name)
+        .map((x) => ({
+          name: String(x.name || "").trim(),
+          color: String(x.color || "#94a3b8"),
+        }))
+        .filter((x) => x.name)
       : [];
   }
 
@@ -1130,11 +1188,11 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
       overall: Math.max(0, Number(budget.amount || 0)),
       allocations: Array.isArray(allocations)
         ? allocations
-            .map((a) => ({
-              category: String(a.category || "").trim(),
-              limit: Math.max(0, Number(a.limit || 0)),
-            }))
-            .filter((a) => a.category)
+          .map((a) => ({
+            category: String(a.category || "").trim(),
+            limit: Math.max(0, Number(a.limit || 0)),
+          }))
+          .filter((a) => a.category)
         : [],
     };
   }

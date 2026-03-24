@@ -703,7 +703,8 @@ input[type="color"] {
 .actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 10px;
+  margin-top: 10px; /* This could be the problem for delete button 
+  misalignment on budget page; still need this though */
 }
 
 .chartWrap {
