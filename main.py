@@ -274,10 +274,10 @@ class CallHandler(QObject):
     
     @Slot(str)
     def delete_expense_category(self, name):
-        self.cursor.execute('DELETE FROM ExpenseCategories WHERE name="'+name+'"')
+        self.cursor.execute('DELETE FROM ExpenseCategories WHERE name=?',(name,))
     @Slot(str)
     def delete_income_category(self, name):
-        self.cursor.execute('DELETE FROM IncomeCategories WHERE name="'+name+'"')
+        self.cursor.execute('DELETE FROM IncomeCategories WHERE name=?',(name,))
 
 class MainWindow(QMainWindow):
     def __init__(self):
