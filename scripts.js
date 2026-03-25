@@ -427,6 +427,10 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   });
 
   searchInput?.addEventListener("input", loadTransactionsFromBackend);
+  window.addEventListener("plutus-db-changed", () => {
+    populateCategories();
+    loadTransactionsFromBackend();
+  });
 
   // Init
   populateCategories();
@@ -854,6 +858,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
     allocForm.reset();
     setTimeout(render, 50);
   });
+  window.addEventListener("plutus-db-changed", () => {
+    render();
+  });
 
   render();
 })();
@@ -1052,6 +1059,7 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
   });
 
   searchInput?.addEventListener("input", renderCategoriesFromBackend);
+  window.addEventListener("plutus-db-changed", renderCategoriesFromBackend);
 
   // Init
   renderCategoriesFromBackend();
@@ -1552,6 +1560,9 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 
     window.handler.delete_goal_scenario(id);
     setTimeout(render, 50);
+  });
+  window.addEventListener("plutus-db-changed", () => {
+    render();
   });
 
   render();
