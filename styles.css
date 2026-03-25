@@ -83,10 +83,6 @@ body {
   color: var(--text);
 }
 
-
-
-
-
 /* ~~~~~~~~~~ Light Mode Overrides ~~~~~~~~~~ */
 body.light {
   --bg: #f6f7fb;
@@ -285,10 +281,9 @@ body.light .cat-item {
   pointer-events: none;
 }
 
-.delete-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.budget-actions {
+  display: flex;
+  justify-content: right;
 }
 
 /* Delete icon button: no background, no border */
@@ -300,7 +295,6 @@ body.light .cat-item {
   border-radius: 10px; /* still gives a nice hover hitbox */
   display: inline-flex;
   align-items: center;
-  justify-content: center;
 }
 
 .delete-btn:hover {
@@ -315,10 +309,6 @@ body.light .delete-btn:hover {
   outline: 2px solid rgba(130, 170, 255, 0.6);
   outline-offset: 2px;
 }
-
-
-
-
 
 /* ~~~~~~~~~~ Topbar Styles ~~~~~~~~~~ */
 header {
@@ -399,10 +389,6 @@ header {
   color: var(--text);
 }
 
-
-
-
-
 /* ~~~~~~~~~~ Password Overlay Styles ~~~~~~~~~~ */
 .overlay {
   position: fixed;
@@ -449,10 +435,6 @@ header {
   gap: 10px;
   align-items: center;
 }
-
-
-
-
 
 /* ~~~~~~~~~~ Main Content / Page Styles ~~~~~~~~~~ */
 main {
@@ -747,10 +729,6 @@ input[type="color"] {
   font-size: 12px;
 }
 
-
-
-
-
 /* ~~~~~~~~~~ Transactions Page Styles ~~~~~~~~~~ */
 .transactionTotals {
   display: grid;
@@ -986,7 +964,7 @@ input[type="color"] {
 
 .amount {
   font-weight: 700;
-  /* text-align: right; */
+  text-align: right;
 }
 
 .amount.income {
@@ -1153,10 +1131,6 @@ select:focus {
   }
 }
 
-
-
-
-
 /* ~~~~~~~~~~ Budget Page Styles ~~~~~~~~~~ */
 
 .budget-grid .budget-overall {
@@ -1264,8 +1238,8 @@ body.dark {
 
 .budget-head {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 140px 90px;
-  gap: 14px;
+  grid-template-columns: 1fr 80px 80px 90px 90px;
+  gap: 20px;
 }
 
 .budget-list-ul {
@@ -1276,8 +1250,8 @@ body.dark {
 
 .budget-row {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 140px 90px;
-  gap: 14px;
+  grid-template-columns: 1fr 80px 80px 90px 90px;
+  gap: 20px;
   align-items: center;
   padding: 12px 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -1341,10 +1315,6 @@ body.light .budget-bar {
     gap: 10px;
   }
 }
-
-
-
-
 
 /* ~~~~~~~~~~ Categories Page Styles ~~~~~~~~~~ */
 .categoryTotals {
@@ -1432,10 +1402,6 @@ body.light .budget-bar {
     justify-content: flex-start;
   }
 }
-
-
-
-
 
 /* ~~~~~~~~~~ Goals Page Styles ~~~~~~~~~~ */
 .goals-grid .goals-create {
@@ -1604,10 +1570,6 @@ body.light .goals-impact-row {
   }
 }
 
-
-
-
-
 /* ~~~~~~~~~~ Navbar Tabs ~~~~~~~~~~ */
 .view {
   display: none;
@@ -1616,10 +1578,6 @@ body.light .goals-impact-row {
 .view.active {
   display: block;
 }
-
-
-
-
 
 /* ~~~~~~~~~~ Navigation Dock Styles ~~~~~~~~~~ */
 .dock {
@@ -1713,9 +1671,6 @@ body.light .goals-impact-row {
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
 }
-
-
-
 
 /* ~~~~~~~~~~ Footer ~~~~~~~~~~ */
 .footer {
