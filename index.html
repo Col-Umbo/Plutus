@@ -17,6 +17,15 @@
    <script>
         new QWebChannel(qt.webChannelTransport, function (channel) {
             window.handler = channel.objects.handler;
+            if (window.handler?.database_changed?.connect) {
+                window.handler.database_changed.connect(function (source) {
+                    window.dispatchEvent(
+                        new CustomEvent("plutus-db-changed", {
+                            detail: { source: source || "external" },
+                        }),
+                    );
+                });
+            }
         });
     </script>
 

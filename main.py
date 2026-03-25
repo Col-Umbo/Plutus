@@ -3,7 +3,7 @@ import os
 import classes
 import datetime
 from PySide6.QtCore import QUrl
-from PySide6.QtCore import QObject, Slot, QJsonValue, QJsonArray
+from PySide6.QtCore import QObject, Slot, QJsonValue, QJsonArray, Signal, QTimer
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
@@ -13,6 +13,8 @@ import sqlite3
 from sqlcipher3 import dbapi2 as sqlite
 import json
 class CallHandler(QObject):
+    database_changed = Signal(str)
+
     # Define class structures
     con : sqlite.Connection
     cursor : sqlite.Cursor
@@ -30,7 +32,35 @@ class CallHandler(QObject):
         # print(datetime.date.today().strftime('%m-%y'))
         self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'", 0.00)')
         self.con.commit()
-        #
+        self._reload_cache()
+        self._last_data_version = self._read_data_version()
+        self._db_watch_timer = QTimer(self)
+        self._db_watch_timer.setInterval(1000)
+        self._db_watch_timer.timeout.connect(self._check_external_db_changes)
+        self._db_watch_timer.start()
+
+    def _read_data_version(self):
+        try:
+            self.cursor.execute('PRAGMA data_version')
+            row = self.cursor.fetchone()
+            return int(row[0]) if row else 0
+        except sqlite.Error:
+            return self._last_data_version
+
+    def _check_external_db_changes(self):
+        current = self._read_data_version()
+        if current == self._last_data_version:
+            return
+        self._last_data_version = current
+        self._reload_cache()
+        self.database_changed.emit("external")
+
+    def _reload_cache(self):
+        self.expenses = []
+        self.income = []
+        self.expenseCategories = []
+        self.incomeCategories = []
+
         self.cursor.execute('SELECT * FROM Income')
         income = self.cursor.fetchall()
         for row in income:
@@ -48,7 +78,10 @@ class CallHandler(QObject):
         for row in categoryTable:
             # Split and parameterize DB entries
             self.expenseCategories.append(classes.ExpenseCategory(row[0], row[2], row[1]))
-            expenses = self.cursor.execute('SELECT * FROM Expenses WHERE categoryName="'+row[0]+'"')
+            expenses = self.cursor.execute(
+                'SELECT * FROM Expenses WHERE categoryName = ?',
+                (row[0],)
+            )
             for expense in expenses:
                 self.expenseCategories[-1].transactions.append(classes.Expense(*expense))
         self.cursor.execute('SELECT * FROM IncomeCategories')
@@ -56,7 +89,10 @@ class CallHandler(QObject):
         for row in categoryTable:
             # Split and parameterize DB entries
             self.incomeCategories.append(classes.IncomeCategory(row[0], row[2], row[1]))
-            income = self.cursor.execute('SELECT * FROM Income WHERE categoryName="'+row[0]+'"')
+            income = self.cursor.execute(
+                'SELECT * FROM Income WHERE categoryName = ?',
+                (row[0],)
+            )
             for incomeItem in income:
                 self.incomeCategories[-1].transactions.append(classes.Income(*incomeItem))
     
@@ -268,16 +304,9 @@ class CallHandler(QObject):
         rows = self.cursor.fetchall()
         amount = 0.00
         for row in rows:
-            amount+=row
+            amount += float(row[0] or 0.0)
         return amount
     # end of items added
-    
-    @Slot(str)
-    def delete_expense_category(self, name):
-        self.cursor.execute('DELETE FROM ExpenseCategories WHERE name=?',(name,))
-    @Slot(str)
-    def delete_income_category(self, name):
-        self.cursor.execute('DELETE FROM IncomeCategories WHERE name=?',(name,))
 
 class MainWindow(QMainWindow):
     def __init__(self):
