@@ -311,8 +311,10 @@ class CallHandler(QObject):
         for row in rows:
             amount += float(row[0] or 0.0)
         return amount
-    # end of items added
-
+    # Password methods will go here
+    @Slot(str)
+    def set_password(password):
+        self.cursor.execute("ATTACH DATABASE 'plutus.db' AS encrypted KEY ?",(password,))
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
