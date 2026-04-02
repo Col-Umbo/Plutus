@@ -165,7 +165,11 @@ class CallHandler(QObject):
     @Slot(str)
     def delete_expense_category(self, name):
         self.cursor.execute("DELETE FROM ExpenseCategories WHERE name=?",(name,))
+        self.cursor.execute("DELETE FROM Expenses WHERE categoryName=?",(name,))
         self.con.commit()
+        for expense in self.expenses:
+            if expense.category == name:
+                self.expenses.remove(expense)
         for category in self.expenseCategories:
             if category.name == name:
                 self.expenseCategories.remove(category)
@@ -173,6 +177,7 @@ class CallHandler(QObject):
     @Slot(str)
     def delete_income_category(self, name):
         self.cursor.execute("DELETE FROM IncomeCategories WHERE name=?",(name,))
+        self.cursor.execute("DELETE FROM Income WHERE categoryName=?",(name,))
         self.con.commit()
         for category in self.incomeCategories:
             if category.name == name:
@@ -306,8 +311,10 @@ class CallHandler(QObject):
         for row in rows:
             amount += float(row[0] or 0.0)
         return amount
-    # end of items added
-
+    # Password methods will go here
+    @Slot(str)
+    def set_password(password):
+        self.cursor.execute("ATTACH DATABASE 'plutus.db' AS encrypted KEY ?",(password,))
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
