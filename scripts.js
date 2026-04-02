@@ -108,6 +108,101 @@ document.addEventListener("DOMContentLoaded", updateDockIcons);
 })();
 
 // ==================== Summary Page (Reserved)====================
+let spendingChart = null;
+
+async function loadSpendingChart() {
+    if (!window.handler) return;
+
+    try {
+        const expenses = JSON.parse(await window.handler.get_expenses(""));
+        const categories = JSON.parse(await window.handler.get_expense_categories());
+
+        // Only expenses
+        const expenseOnly = expenses.filter(e => e.transactionType === "Expense");
+
+        if (expenseOnly.length === 0) {
+            document.getElementById("spendingEmpty").style.display = "block";
+            return;
+        }
+
+        document.getElementById("spendingEmpty").style.display = "none";
+
+        // Group totals by category
+        const totals = {};
+        expenseOnly.forEach(tx => {
+            const cat = tx.category || "Other";
+            totals[cat] = (totals[cat] || 0) + parseFloat(tx.amount);
+        });
+
+        // Sort highest → lowest
+        const sorted = Object.entries(totals)
+            .sort((a, b) => b[1] - a[1]);
+
+        const labels = sorted.map(x => x[0]);
+        const data = sorted.map(x => x[1]);
+
+        // Match category colors
+        const colorMap = {};
+        categories.forEach(c => {
+            colorMap[c.name] = c.color;
+        });
+
+        const colors = labels.map(l => colorMap[l] || "#888");
+
+        // Destroy previous chart
+        if (spendingChart) {
+            spendingChart.destroy();
+        }
+
+        // Create chart
+        const ctx = document.getElementById("spendingPie");
+
+        spendingChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "bottom"
+                    }
+                }
+            }
+        });
+
+        // Build list
+        const list = document.getElementById("spendingList");
+        list.innerHTML = "";
+
+        const totalSum = data.reduce((a, b) => a + b, 0);
+
+        sorted.forEach(([cat, amount]) => {
+            const percent = ((amount / totalSum) * 100).toFixed(1);
+
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <span>${cat}</span>
+                <span>$${amount.toFixed(2)} (${percent}%)</span>
+            `;
+            list.appendChild(li);
+        });
+
+    } catch (err) {
+        console.error("Error loading spending chart:", err);
+    }
+}
+
+// Initial load
+window.addEventListener("load", loadSpendingChart);
+
+// Refresh when DB updates
+window.addEventListener("plutus-db-changed", loadSpendingChart);
 
 // ==================== Transactions Page ====================
 (function initTransactions() {

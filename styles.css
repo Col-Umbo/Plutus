@@ -729,6 +729,33 @@ input[type="color"] {
   font-size: 12px;
 }
 
+/* ~~~~~~~~~~ Summary Page Styles ~~~~~~~~~~ */
+.spending-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .spending-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+#spendingList li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+body.light #spendingList li {
+  background: rgba(0, 0, 0, 0.04);
+}
+
 /* ~~~~~~~~~~ Transactions Page Styles ~~~~~~~~~~ */
 .transactionTotals {
   display: grid;

@@ -14,7 +14,7 @@
 
 <body>
     <!-- =============== Backend Connection =============== -->
-   <script>
+    <script>
         new QWebChannel(qt.webChannelTransport, function (channel) {
             window.handler = channel.objects.handler;
             if (window.handler?.database_changed?.connect) {
@@ -76,6 +76,21 @@
                             <h3>Total Spending</h3>
                         </div>
                         <p>Include total spending pie chart with percentages of how much spent from each category.</p>
+                        <br>
+
+                        <div class="spending-container">
+                            <!-- Pie Chart -->
+                            <div class="chartWrap">
+                                <canvas id="spendingPie"></canvas>
+                            </div>
+
+                            <!-- Category List -->
+                            <ul id="spendingList" class="totals"></ul>
+                        </div>
+
+                        <div id="spendingEmpty" class="empty">
+                            No spending data yet.
+                        </div>
                     </section>
                 </div>
 
