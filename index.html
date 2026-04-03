@@ -6,7 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Plutus</title>
     <link rel="stylesheet" href="styles.css" />
-    <script defer src="scripts.js"></script>
+    <script defer src="scripts/core.js"></script>
+    <script defer src="scripts/summary.js"></script>
+    <script defer src="scripts/transactions.js"></script>
+    <script defer src="scripts/budget.js"></script>
+    <script defer src="scripts/categories.js"></script>
+    <script defer src="scripts/goals.js"></script>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -67,12 +72,66 @@
             <article class="view active" id="view-home" data-title="Home">
                 <div class="contentHeader">
                     <h1>Home</h1>
-                    <p>Get an summary and overview of your finances.</p>
+                    <p>Get a summary and overview of your finances.</p>
                 </div>
 
-                <div class="grid">
-                    <section class="card">
+                <div class="grid home-grid">
+                    <section class="card home-snapshot">
                         <div class="cardTop">
+                            <h3>This Month Snapshot</h3>
+                            <span id="summaryMonthLabel" class="muted"></span>
+                        </div>
+
+                        <div class="summary-kpis">
+                            <div class="summary-kpi">
+                                <div class="label">Income</div>
+                                <div id="summaryIncome" class="value good">$0.00</div>
+                            </div>
+                            <div class="summary-kpi">
+                                <div class="label">Expenses</div>
+                                <div id="summaryExpenses" class="value bad">$0.00</div>
+                            </div>
+                            <div class="summary-kpi">
+                                <div class="label">Net Cash Flow</div>
+                                <div id="summaryNet" class="value">$0.00</div>
+                            </div>
+                            <div class="summary-kpi">
+                                <div class="label">Remaining Budget</div>
+                                <div id="summaryRemaining" class="value">$0.00</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card home-health">
+                        <div class="cardTop">
+                            <h3>Budget Health</h3>
+                        </div>
+
+                        <div class="summary-health-list">
+                            <div class="summary-health-row">
+                                <span>Budget Used</span>
+                                <b id="summaryBudgetUsed">0%</b>
+                            </div>
+                            <div class="summary-health-row">
+                                <span>Days Left In Month</span>
+                                <b id="summaryDaysLeft">0</b>
+                            </div>
+                            <div class="summary-health-row">
+                                <span>Projected Month-End Spend</span>
+                                <b id="summaryProjectedSpend">$0.00</b>
+                            </div>
+                        </div>
+                        <p id="summaryBudgetStatus">Set a monthly budget to see better projections.</p>
+                    </section>
+
+                    <section class="card home-topcats">
+                        <div class="cardTop">
+                            <h3>Top Spending Categories</h3>
+                        </div>
+                        <ul id="summaryTopCategories" class="summary-list"></ul>
+                        <div id="summaryTopCategoriesEmpty" class="empty">
+                            No expense activity this month yet.
+                        </div>
                             <h3>Total Spending</h3>
                         </div>
                         <p>Include total spending pie chart with percentages of how much spent from each category.</p>
@@ -119,8 +178,17 @@
                         </div>
                         <p>Show list of top categories (categories where the most was spent).</p>
                     </section>
-                </div>
 
+                    <section class="card home-recent">
+                        <div class="cardTop">
+                            <h3>Recent Activity</h3>
+                        </div>
+                        <ul id="summaryRecentActivity" class="summary-list"></ul>
+                        <div id="summaryRecentEmpty" class="empty">
+                            No transactions yet.
+                        </div>
+                    </section>
+                </div>
             </article>
 
             <!-- ~~~~~~~~~~ Transactions Page ~~~~~~~~~~ -->
