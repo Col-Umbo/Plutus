@@ -322,6 +322,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         # Create a QWebEngineView widget
         self.browser = QWebEngineView()
+        self.browser.settings().setAttribute(QWebEngineSettings.WebAttribute.ShowScrollBars,False)
         self.browser.channel = QWebChannel()
         self.browser.handler = CallHandler()
         self.browser.channel.registerObject('handler', self.browser.handler)
