@@ -21,6 +21,8 @@
   const listEl = document.querySelector("#budgetList");
   const emptyEl = document.querySelector("#budgetEmptyState");
 
+  const dockBtn = document.getElementById("budget");
+
   if (!pieCanvas || !overallForm || !allocForm || !listEl) return;
 
   let pieChart = null;
@@ -68,11 +70,11 @@
       overall: Math.max(0, Number(budget.amount || 0)),
       allocations: Array.isArray(allocations)
         ? allocations
-          .map((a) => ({
-            category: String(a.category || "").trim(),
-            limit: Math.max(0, Number(a.limit || 0)),
-          }))
-          .filter((a) => a.category)
+            .map((a) => ({
+              category: String(a.category || "").trim(),
+              limit: Math.max(0, Number(a.limit || 0)),
+            }))
+            .filter((a) => a.category)
         : [],
     };
   }
@@ -82,11 +84,11 @@
     const list = JSON.parse(json || "[]");
     return Array.isArray(list)
       ? list
-        .map((x) => ({
-          name: String(x.name || "").trim(),
-          color: String(x.color || "#94a3b8"),
-        }))
-        .filter((x) => x.name)
+          .map((x) => ({
+            name: String(x.name || "").trim(),
+            color: String(x.color || "#94a3b8"),
+          }))
+          .filter((x) => x.name)
       : [];
   }
 
@@ -423,6 +425,9 @@
     render();
   });
 
+  dockBtn.addEventListener("click", () => {
+    render();
+  });
+
   render();
 })();
-

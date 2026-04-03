@@ -23,6 +23,8 @@
   const searchInput = $("#catSearchInput");
   const pills = $$(".cat-pill");
 
+  const dockBtn = document.getElementById("categories");
+
   let currentFilter = "all"; // all | income | expense
 
   function openModal() {
@@ -123,7 +125,8 @@
 
             setTimeout(() => {
               renderCategoriesFromBackend();
-              if (typeof populateCategories === "function") populateCategories();
+              if (typeof populateCategories === "function")
+                populateCategories();
               if (typeof updateDockIcons === "function") updateDockIcons();
             }, 50);
           });
@@ -194,7 +197,10 @@
   searchInput?.addEventListener("input", renderCategoriesFromBackend);
   window.addEventListener("plutus-db-changed", renderCategoriesFromBackend);
 
+  dockBtn.addEventListener("click", () => {
+    renderCategoriesFromBackend();
+  });
+
   // Init
   renderCategoriesFromBackend();
 })();
-

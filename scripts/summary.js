@@ -16,10 +16,14 @@
   const topEmptyEl = $("#summaryTopCategoriesEmpty");
   const recentListEl = $("#summaryRecentActivity");
   const recentEmptyEl = $("#summaryRecentEmpty");
+  const dockBtn = document.getElementById("home");
 
   function money(n) {
     const value = Number(n || 0);
-    return value.toLocaleString(undefined, { style: "currency", currency: "USD" });
+    return value.toLocaleString(undefined, {
+      style: "currency",
+      currency: "USD",
+    });
   }
 
   function escapeHtml(str) {
@@ -86,7 +90,10 @@
   }
 
   function sumAmount(list) {
-    return list.reduce((acc, item) => acc + Math.abs(Number(item.amount || 0) || 0), 0);
+    return list.reduce(
+      (acc, item) => acc + Math.abs(Number(item.amount || 0) || 0),
+      0,
+    );
   }
 
   function setSignedClass(el, value) {
@@ -101,10 +108,15 @@
 
     const spendByCategory = new Map();
     for (const tx of expenses) {
-      const category = String(tx.category || tx.categoryName || "Uncategorized").trim() || "Uncategorized";
+      const category =
+        String(tx.category || tx.categoryName || "Uncategorized").trim() ||
+        "Uncategorized";
       const amount = Math.abs(Number(tx.amount || 0) || 0);
       if (!Number.isFinite(amount) || amount <= 0) continue;
-      spendByCategory.set(category, (spendByCategory.get(category) || 0) + amount);
+      spendByCategory.set(
+        category,
+        (spendByCategory.get(category) || 0) + amount,
+      );
     }
 
     const top = Array.from(spendByCategory.entries())
@@ -126,7 +138,10 @@
 
     for (const row of top) {
       const limit = allocationMap.get(row.category.toLowerCase()) || 0;
-      const pct = limit > 0 ? Math.min(100, (row.amount / limit) * 100) : (row.amount / maxSpent) * 100;
+      const pct =
+        limit > 0
+          ? Math.min(100, (row.amount / limit) * 100)
+          : (row.amount / maxSpent) * 100;
 
       const li = document.createElement("li");
       li.className = "summary-item";
@@ -166,7 +181,9 @@
       const sign = tx.type === "income" ? "+" : "-";
       const amountClass = tx.type === "income" ? "good" : "bad";
       const title = String(tx.name || "Untitled").trim() || "Untitled";
-      const category = String(tx.category || tx.categoryName || "Uncategorized").trim() || "Uncategorized";
+      const category =
+        String(tx.category || tx.categoryName || "Uncategorized").trim() ||
+        "Uncategorized";
 
       const li = document.createElement("li");
       li.className = "summary-item";
@@ -205,8 +222,12 @@
     const allocations = JSON.parse(allocJson || "[]");
 
     const currentMonth = monthKeyFromDate(now);
-    const monthExpenses = allExpenses.filter((tx) => txMonthKey(tx.date) === currentMonth);
-    const monthIncome = allIncome.filter((tx) => txMonthKey(tx.date) === currentMonth);
+    const monthExpenses = allExpenses.filter(
+      (tx) => txMonthKey(tx.date) === currentMonth,
+    );
+    const monthIncome = allIncome.filter(
+      (tx) => txMonthKey(tx.date) === currentMonth,
+    );
 
     const incomeTotal = sumAmount(monthIncome);
     const expenseTotal = sumAmount(monthExpenses);
@@ -231,7 +252,8 @@
 
     if (overallBudget > 0) {
       const budgetUsed = (expenseTotal / overallBudget) * 100;
-      if (budgetUsedEl) budgetUsedEl.textContent = `${Math.min(999, budgetUsed).toFixed(1)}%`;
+      if (budgetUsedEl)
+        budgetUsedEl.textContent = `${Math.min(999, budgetUsed).toFixed(1)}%`;
       if (remainingEl) remainingEl.textContent = money(remainingBudget);
       setSignedClass(remainingEl, remainingBudget);
 
@@ -249,7 +271,8 @@
         remainingEl.classList.remove("good", "bad");
       }
       if (budgetStatusEl) {
-        budgetStatusEl.textContent = "Set a monthly budget to track remaining budget and projections.";
+        budgetStatusEl.textContent =
+          "Set a monthly budget to track remaining budget and projections.";
       }
     }
 
@@ -258,6 +281,8 @@
   }
 
   window.addEventListener("plutus-db-changed", renderSummaryPage);
+  dockBtn.addEventListener("click", () => {
+    renderSummaryPage();
+  });
   renderSummaryPage();
 })();
-
