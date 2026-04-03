@@ -315,6 +315,7 @@ class CallHandler(QObject):
     @Slot(str)
     def set_password(password):
         self.cursor.execute("ATTACH DATABASE 'plutus.db' AS encrypted KEY ?",(password,))
+        con.commit()
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
