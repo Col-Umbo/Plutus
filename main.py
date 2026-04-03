@@ -166,6 +166,7 @@ class CallHandler(QObject):
     def delete_expense_category(self, name):
         self.cursor.execute("DELETE FROM ExpenseCategories WHERE name=?",(name,))
         self.cursor.execute("DELETE FROM Expenses WHERE categoryName=?",(name,))
+        self.cursor.execute("DELETE FROM BudgetAllocations WHERE category=?",(name,))
         self.con.commit()
         for expense in self.expenses:
             if expense.category == name:
