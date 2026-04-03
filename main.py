@@ -179,7 +179,11 @@ class CallHandler(QObject):
     def delete_income_category(self, name):
         self.cursor.execute("DELETE FROM IncomeCategories WHERE name=?",(name,))
         self.cursor.execute("DELETE FROM Income WHERE categoryName=?",(name,))
+        self.cursor.execute("DELETE FROM BudgetAllocations WHERE category=?",(name,))
         self.con.commit()
+        for income in self.income:
+            if income.category == name:
+                self.income.remove(income)
         for category in self.incomeCategories:
             if category.name == name:
                 self.incomeCategories.remove(category)
