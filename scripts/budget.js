@@ -210,6 +210,7 @@
 
     const unallocLimit = remainingToAllocate(state);
     const allocTotal = allocatedTotal(state);
+    const totalBudget = Math.max(0, Number(state.overall) || 0);
 
     if (allocatedEl) allocatedEl.textContent = money(allocTotal);
     if (unallocatedEl) unallocatedEl.textContent = money(unallocLimit);
@@ -224,7 +225,10 @@
 
     function makeRow({ name, limit, spent, isUnallocated }) {
       const remaining = limit - spent;
-      const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
+      const pct =
+        totalBudget > 0
+          ? Math.min(100, (limit / totalBudget) * 100)
+          : 0;
       const over = spent > limit && limit > 0;
 
       const li = document.createElement("li");
