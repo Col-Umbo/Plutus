@@ -70,12 +70,17 @@
 
             <!-- ~~~~~~~~~~ Summary Page ~~~~~~~~~~ -->
             <article class="view active" id="view-home" data-title="Home">
+
+                <!-- Page Header -->
                 <div class="contentHeader">
                     <h1>Home</h1>
                     <p>Get a summary and overview of your finances.</p>
                 </div>
 
+                <!-- Card Container -->
                 <div class="grid home-grid">
+
+                    <!-- This Month's Snapshot Card -->
                     <section class="card home-snapshot">
                         <div class="cardTop">
                             <h3>This Month Snapshot</h3>
@@ -102,6 +107,7 @@
                         </div>
                     </section>
 
+                    <!-- Budget Health Card -->
                     <section class="card home-health">
                         <div class="cardTop">
                             <h3>Budget Health</h3>
@@ -124,6 +130,7 @@
                         <p id="summaryBudgetStatus">Set a monthly budget to see better projections.</p>
                     </section>
 
+                    <!-- Spending Categories Card -->
                     <section class="card home-topcats">
                         <div class="cardTop">
                             <h3>Top Spending Categories</h3>
@@ -132,10 +139,6 @@
                         <div id="summaryTopCategoriesEmpty" class="empty">
                             No expense activity this month yet.
                         </div>
-                            <h3>Total Spending</h3>
-                        </div>
-                        <p>Include total spending pie chart with percentages of how much spent from each category.</p>
-                        <br>
 
                         <div class="spending-container">
                             <!-- Pie Chart -->
@@ -151,44 +154,9 @@
                             No spending data yet.
                         </div>
                     </section>
+                    
                 </div>
-
-                <div class="grid">
-                    <section class="card">
-                        <div class="cardTop">
-                            <h3>Recent Transactions</h3>
-                        </div>
-                        <p>Show list of recent transactions.</p>
-                    </section>
-                </div>
-
-                <div class="grid">
-                    <section class="card">
-                        <div class="cardTop">
-                            <h3>Remaining Budget</h3>
-                        </div>
-                        <p>Show remaining budget and categorized status bar.</p>
-                    </section>
-                </div>
-
-                <div class="grid">
-                    <section class="card">
-                        <div class="cardTop">
-                            <h3>Top Categories</h3>
-                        </div>
-                        <p>Show list of top categories (categories where the most was spent).</p>
-                    </section>
-
-                    <section class="card home-recent">
-                        <div class="cardTop">
-                            <h3>Recent Activity</h3>
-                        </div>
-                        <ul id="summaryRecentActivity" class="summary-list"></ul>
-                        <div id="summaryRecentEmpty" class="empty">
-                            No transactions yet.
-                        </div>
-                    </section>
-                </div>
+                
             </article>
 
             <!-- ~~~~~~~~~~ Transactions Page ~~~~~~~~~~ -->
