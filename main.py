@@ -9,9 +9,12 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QFileInfo
 from PySide6.QtWebEngineCore import QWebEngineSettings
+from PySide6.QtWidgets import QInputDialog, QMessageBox
 import sqlite3
 from sqlcipher3 import dbapi2 as sqlite
 import json
+import hashlib
+
 class CallHandler(QObject):
     database_changed = Signal(str)
 
@@ -38,6 +41,14 @@ class CallHandler(QObject):
         self._db_watch_timer.setInterval(1000)
         self._db_watch_timer.timeout.connect(self._check_external_db_changes)
         self._db_watch_timer.start()
+        
+        # Create settings table if it doesn't exist (password lock)
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS AppSettings (
+        key TEXT PRIMARY KEY,
+        value TEXT )
+        """)
+        self.con.commit()
 
     def _read_data_version(self):
         try:
@@ -316,11 +327,48 @@ class CallHandler(QObject):
         for row in rows:
             amount += float(row[0] or 0.0)
         return amount
+    
     # Password methods will go here
+    
+    # @Slot(str)
+    # def set_password(password):
+    #     self.cursor.execute("ATTACH DATABASE 'plutus.db' AS encrypted KEY ?",(password,))
+    #     con.commit()
+
+    # New password approach
+    def _hash_password(self, password):
+        return hashlib.sha256(password.encode()).hexdigest()
+
     @Slot(str)
-    def set_password(password):
-        self.cursor.execute("ATTACH DATABASE 'plutus.db' AS encrypted KEY ?",(password,))
-        con.commit()
+    def set_password(self, password):
+        hashed = self._hash_password(password)
+        self.cursor.execute(
+            "INSERT OR REPLACE INTO AppSettings (key, value) VALUES ('password', ?)",
+            (hashed,)
+        )
+        self.con.commit()
+
+    @Slot(str, result=bool)
+    def verify_password(self, password):
+        self.cursor.execute(
+            "SELECT value FROM AppSettings WHERE key='password'"
+        )
+        row = self.cursor.fetchone()
+
+        if not row:
+            return False
+
+        hashed_input = self._hash_password(password)
+        return hashed_input == row[0]
+
+    @Slot(result=bool)
+    def has_password(self):
+        self.cursor.execute(
+            "SELECT value FROM AppSettings WHERE key='password'"
+        )
+        return self.cursor.fetchone() is not None
+    # end of new password approach
+        
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()

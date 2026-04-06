@@ -87,21 +87,109 @@ themeToggleBtn?.addEventListener("click", () => {
 document.addEventListener("DOMContentLoaded", updateDockIcons);
 
 // ==================== Password Overlay (guarded - not built yet) ====================
-(function initPasswordOverlay() {
-  const overlay = $("#overlay");
-  const passwordBtn = $("#passwordBtn");
-  if (!overlay || !passwordBtn) return;
+// (function initPasswordOverlay() {
+//   const overlay = $("#overlay");
+//   const passwordBtn = $("#passwordBtn");
+//   if (!overlay || !passwordBtn) return;
 
-  const open = () => overlay.classList.add("open");
-  const close = () => overlay.classList.remove("open");
+//   const open = () => overlay.classList.add("open");
+//   const close = () => overlay.classList.remove("open");
 
-  passwordBtn.addEventListener("click", open);
+//   passwordBtn.addEventListener("click", open);
 
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
-  });
+//   overlay.addEventListener("click", (e) => {
+//     if (e.target === overlay) close();
+//   });
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.classList.contains("open")) close();
-  });
-})();
+//   document.addEventListener("keydown", (e) => {
+//     if (e.key === "Escape" && overlay.classList.contains("open")) close();
+//   });
+// })();
+
+const passwordBtn = document.getElementById("passwordBtn");
+const overlay = document.getElementById("passwordOverlay");
+const input = document.getElementById("passwordInput");
+const submitBtn = document.getElementById("passwordSubmit");
+const cancelBtn = document.getElementById("passwordCancel");
+const errorText = document.getElementById("passwordError");
+const title = document.getElementById("passwordTitle");
+
+let isLocked = false;
+let creatingPassword = false;
+
+// Open overlay
+function openOverlay(mode) {
+    overlay.classList.add("open");
+    input.value = "";
+    errorText.style.display = "none";
+
+    if (mode === "create") {
+        title.textContent = "Create Password";
+        creatingPassword = true;
+    } else {
+        title.textContent = "Enter Password";
+        creatingPassword = false;
+    }
+}
+
+// Close overlay
+function closeOverlay() {
+    overlay.classList.remove("open");
+}
+
+// Lock app
+function lockApp() {
+    isLocked = true;
+    openOverlay("enter");
+}
+
+// Unlock app
+function unlockApp() {
+    isLocked = false;
+    closeOverlay();
+}
+
+// Button click
+passwordBtn.addEventListener("click", async () => {
+    const hasPass = await window.handler.has_password();
+
+    if (!hasPass) {
+        openOverlay("create");
+    } else {
+        lockApp();
+    }
+});
+
+// Submit password
+submitBtn.addEventListener("click", async () => {
+    const value = input.value.trim();
+
+    if (!value) return;
+
+    if (creatingPassword) {
+        await window.handler.set_password(value);
+        lockApp();
+        return;
+    }
+
+    const valid = await window.handler.verify_password(value);
+
+    if (valid) {
+        unlockApp();
+    } else {
+        errorText.style.display = "block";
+    }
+});
+
+// Cancel
+cancelBtn.addEventListener("click", () => {
+    closeOverlay();
+});
+
+// Lock on startup if password exists
+window.addEventListener("load", async () => {
+    const hasPass = await window.handler.has_password();
+    if (hasPass) {
+        lockApp();
+    }
+});

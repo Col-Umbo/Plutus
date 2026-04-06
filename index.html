@@ -17,6 +17,28 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
+<!-- =============== Password Overlay =============== -->
+<div id="passwordOverlay" class="overlay">
+    <div class="palette">
+        <div class="palTop">
+            <h2 id="passwordTitle">Enter Password</h2>
+        </div>
+
+        <div style="padding: 20px;">
+            <input id="passwordInput" type="password" placeholder="Enter password" />
+
+            <div style="margin-top: 15px; display:flex; gap:10px;">
+                <button id="passwordSubmit" class="btn primary">Submit</button>
+                <button id="passwordCancel" class="btn secondary">Cancel</button>
+            </div>
+
+            <p id="passwordError" style="color:red; display:none; margin-top:10px;">
+                Incorrect password
+            </p>
+        </div>
+    </div>
+</div>
+
 <body>
     <!-- =============== Backend Connection =============== -->
     <script>
@@ -55,8 +77,8 @@
 
             <!-- Password Button -->
             <button class="topbarButtons" id="passwordBtn" type="button" title="Enable Password">
-                <!-- Insert lock icon here -->
-                <b>Lock</b>
+                <img class="lockIcon" src="Icons/lock_dark-mode.png" data-dark="Icons/lock_dark-mode.png"
+                data-light="Icons/lock_light-mode.png" alt="lock icon" />
             </button>
         </div>
     </header>
@@ -172,7 +194,6 @@
                     </section>
 
                 </div>
-
             </article>
 
             <!-- ~~~~~~~~~~ Transactions Page ~~~~~~~~~~ -->
@@ -378,7 +399,7 @@
                             <div class="row row-inline">
                                 <label class="checkbox">
                                     <input id="allocateRemaining" type="checkbox" />
-                                    Allocate remaining unallocated balance
+                                    Allocate remaining balance
                                 </label>
 
                                 <div class="btnRow">
@@ -733,21 +754,6 @@
             <div class="dockLabel">Goals</div>
         </button>
     </nav>
-
-
-
-
-    <!-- =============== Password Overlay =============== -->
-    <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="Password palette">
-        <div class="palette" role="document">
-            <div class="palTop">
-                <h3>Enable Password Lock</h3>
-            </div>
-            <p>Password lock feature coming soon.</p>
-        </div>
-    </div>
-
-
 
     <!-- =============== Footer =============== -->
     <footer class="footer">
