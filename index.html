@@ -83,7 +83,7 @@
                     <!-- This Month's Snapshot Card -->
                     <section class="card home-snapshot">
                         <div class="cardTop">
-                            <h3>This Month Snapshot</h3>
+                            <h2>This Month's Snapshot</h2>
                             <span id="summaryMonthLabel" class="muted"></span>
                         </div>
 
@@ -107,37 +107,10 @@
                         </div>
                     </section>
 
-                    <!-- Budget Health Card -->
-                    <section class="card home-health">
+                    <!-- Total Spending Card -->
+                    <section class="card">
                         <div class="cardTop">
-                            <h3>Budget Health</h3>
-                        </div>
-
-                        <div class="summary-health-list">
-                            <div class="summary-health-row">
-                                <span>Budget Used</span>
-                                <b id="summaryBudgetUsed">0%</b>
-                            </div>
-                            <div class="summary-health-row">
-                                <span>Days Left In Month</span>
-                                <b id="summaryDaysLeft">0</b>
-                            </div>
-                            <div class="summary-health-row">
-                                <span>Projected Month-End Spend</span>
-                                <b id="summaryProjectedSpend">$0.00</b>
-                            </div>
-                        </div>
-                        <p id="summaryBudgetStatus">Set a monthly budget to see better projections.</p>
-                    </section>
-
-                    <!-- Spending Categories Card -->
-                    <section class="card home-topcats">
-                        <div class="cardTop">
-                            <h3>Top Spending Categories</h3>
-                        </div>
-                        <ul id="summaryTopCategories" class="summary-list"></ul>
-                        <div id="summaryTopCategoriesEmpty" class="empty">
-                            No expense activity this month yet.
+                            <h2>Total Spending</h2>
                         </div>
 
                         <div class="spending-container">
@@ -154,9 +127,52 @@
                             No spending data yet.
                         </div>
                     </section>
-                    
+
+                    <!-- Budget Overview Card -->
+                    <section class="card budget-overview">
+                        <div class="cardTop">
+                            <h2>Budget Overview</h2>
+                        </div>
+
+                        <!-- Budget Health Card -->
+                        <div class="card home-health">
+                            <div class="cardTop">
+                                <h3>Budget Health</h3>
+                            </div>
+
+                            <div class="summary-health-list">
+                                <div class="summary-health-row">
+                                    <span>Budget Used</span>
+                                    <b id="summaryBudgetUsed">0%</b>
+                                </div>
+                                <div class="summary-health-row">
+                                    <span>Days Left In Month</span>
+                                    <b id="summaryDaysLeft">0</b>
+                                </div>
+                                <div class="summary-health-row">
+                                    <span>Projected Month-End Spend</span>
+                                    <b id="summaryProjectedSpend">$0.00</b>
+                                </div>
+                            </div>
+                            <p id="summaryBudgetStatus">Set a monthly budget to see better projections.</p>
+                        </div>
+
+                        <br>
+
+                        <!-- Top Spending Categories Card -->
+                        <div class="card home-topcats">
+                            <div class="cardTop">
+                                <h3>Top Spending Categories</h3>
+                            </div>
+                            <ul id="summaryTopCategories" class="summary-list"></ul>
+                            <div id="summaryTopCategoriesEmpty" class="empty">
+                                No expense activity this month yet.
+                            </div>
+                        </div>
+                    </section>
+
                 </div>
-                
+
             </article>
 
             <!-- ~~~~~~~~~~ Transactions Page ~~~~~~~~~~ -->
@@ -524,6 +540,8 @@
                 </div>
 
                 <div class="grid goals-grid">
+
+                    <!-- Add What-If Scenario -->
                     <section class="card goals-create">
                         <div class="cardTop">
                             <h3>Add What-If Scenario</h3>
@@ -574,6 +592,7 @@
                         </form>
                     </section>
 
+                    <!-- Projection Summary -->
                     <section class="card goals-summary">
                         <div class="cardTop">
                             <h3>Projection Summary</h3>
@@ -623,6 +642,7 @@
                         <div id="goalsBudgetStatus" class="muted goals-status"></div>
                     </section>
 
+                    <!-- Scenario List Card -->
                     <section class="card goals-list">
                         <div class="cardTop">
                             <h3>Scenario List</h3>
@@ -645,6 +665,7 @@
                         </div>
                     </section>
 
+                    <!-- Budget Category Impact Card -->
                     <section class="card goals-impact">
                         <div class="cardTop">
                             <h3>Budget Category Impact</h3>

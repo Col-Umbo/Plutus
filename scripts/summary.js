@@ -1,4 +1,4 @@
-// ==================== Summary Page (Reserved)====================
+// ==================== Summary Page ====================
 (function initSummaryPage() {
   const homeView = $("#view-home");
   if (!homeView) return;
@@ -279,6 +279,185 @@
     renderTopCategories(monthExpenses, allocations);
     renderRecentActivity(allIncome, allExpenses);
   }
+
+  // Total Spending Card (with pie chart)
+  let spendingChart = null;
+
+  const centerTextPlugin = {
+    id: "centerTextPlugin",
+    afterDraw(chart) {
+      const dataset = chart?.data?.datasets?.[0];
+      if (!dataset || !dataset.data || !dataset.data.length) return;
+
+      const meta = chart.getDatasetMeta(0);
+      if (!meta || !meta.data || !meta.data.length) return;
+
+      const total = dataset.data.reduce((sum, value) => sum + Number(value || 0), 0);
+      if (!total) return;
+
+      const x = meta.data[0].x;
+      const y = meta.data[0].y;
+      const ctx = chart.ctx;
+
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const textColor = getComputedStyle(document.body)
+        .getPropertyValue("--text")
+        .trim() || "#ffffff";
+
+      const subTextColor = getComputedStyle(document.body)
+        .getPropertyValue("--muted")
+        .trim() || "rgba(255,255,255,0.65)";
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 22px Sansation, sans-serif";
+      ctx.fillText(`$${total.toFixed(2)}`, x, y - 10);
+
+      ctx.fillStyle = subTextColor;
+      ctx.font = "12px sans-serif";
+      ctx.fillText("Total Spent", x, y + 14);
+
+      ctx.restore();
+    }
+  };
+
+  async function loadSpendingChart() {
+    const canvas = document.getElementById("spendingPie");
+    const list = document.getElementById("spendingList");
+    const empty = document.getElementById("spendingEmpty");
+
+    if (!canvas || !list || !empty || !window.handler || typeof Chart === "undefined") {
+      return;
+    }
+
+    try {
+      const expenses = JSON.parse(await window.handler.get_expenses(""));
+      const categories = JSON.parse(await window.handler.get_expense_categories());
+
+      const expenseOnly = expenses.filter(tx => {
+        const type = String(tx.transactionType || "").toLowerCase();
+        return type === "expense";
+      });
+
+      const totalsByCategory = {};
+      expenseOnly.forEach(tx => {
+        const category = tx.category || "Other";
+        const amount = Number(tx.amount || 0);
+
+        if (amount > 0) {
+          totalsByCategory[category] = (totalsByCategory[category] || 0) + amount;
+        }
+      });
+
+      const sorted = Object.entries(totalsByCategory)
+        .sort((a, b) => b[1] - a[1]);
+
+      if (!sorted.length) {
+        if (spendingChart) {
+          spendingChart.destroy();
+          spendingChart = null;
+        }
+        list.innerHTML = "";
+        empty.style.display = "block";
+        canvas.style.display = "none";
+        return;
+      }
+
+      empty.style.display = "none";
+      canvas.style.display = "block";
+
+      const labels = sorted.map(([category]) => category);
+      const data = sorted.map(([, amount]) => amount);
+
+      const colorMap = {};
+      categories.forEach(cat => {
+        colorMap[cat.name] = cat.color;
+      });
+
+      const fallbackColors = [
+        "#7c3aed",
+        "#22d3ee",
+        "#34d399",
+        "#f97316",
+        "#fb7185",
+        "#facc15",
+        "#60a5fa",
+        "#a78bfa"
+      ];
+
+      const colors = labels.map((label, index) => colorMap[label] || fallbackColors[index % fallbackColors.length]);
+
+      if (spendingChart) {
+        spendingChart.destroy();
+        spendingChart = null;
+      }
+
+      spendingChart = new Chart(canvas, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [
+            {
+              data,
+              backgroundColor: colors,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "68%",
+          plugins: {
+            legend: {
+              display: true,
+              position: "bottom"
+            },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const value = Number(context.raw || 0);
+                  const total = data.reduce((sum, n) => sum + n, 0);
+                  const percent = total ? ((value / total) * 100).toFixed(1) : "0.0";
+                  return `${context.label}: $${value.toFixed(2)} (${percent}%)`;
+                }
+              }
+            }
+          }
+        },
+        plugins: [centerTextPlugin]
+      });
+
+      const totalSpent = data.reduce((sum, n) => sum + n, 0);
+
+      list.innerHTML = sorted.map(([category, amount]) => {
+        const percent = totalSpent ? ((amount / totalSpent) * 100).toFixed(1) : "0.0";
+        return `
+                <li>
+                    <span>${category}</span>
+                    <span>$${amount.toFixed(2)} (${percent}%)</span>
+                </li>
+            `;
+      }).join("");
+
+    } catch (error) {
+      console.error("Failed to load Total Spending chart:", error);
+
+      if (spendingChart) {
+        spendingChart.destroy();
+        spendingChart = null;
+      }
+
+      document.getElementById("spendingList").innerHTML = "";
+      document.getElementById("spendingEmpty").style.display = "block";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadSpendingChart);
+  window.addEventListener("plutus-db-changed", loadSpendingChart);
+  // end of Total Spending card segment
 
   window.addEventListener("plutus-db-changed", renderSummaryPage);
   dockBtn.addEventListener("click", () => {
