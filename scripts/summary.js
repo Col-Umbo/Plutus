@@ -333,26 +333,27 @@
     }
 
     try {
-      const expenses = JSON.parse(await window.handler.get_expenses(""));
-      const categories = JSON.parse(await window.handler.get_expense_categories());
+      const expenses = JSON.parse(await handlerCall("get_expenses", "") || "[]");
+      const categories = JSON.parse(await handlerCall("get_expense_categories") || "[]");
 
-      const expenseOnly = expenses.filter(tx => {
-        const type = String(tx.transactionType || "").toLowerCase();
-        return type === "expense";
-      });
+      const now = new Date();
+      const currentMonth = monthKeyFromDate(now);
+
+      // get_expenses() already returns only expense rows
+      const monthExpenses = expenses.filter((tx) => txMonthKey(tx.date) === currentMonth);
 
       const totalsByCategory = {};
-      expenseOnly.forEach(tx => {
-        const category = tx.category || "Other";
-        const amount = Number(tx.amount || 0);
+      monthExpenses.forEach((tx) => {
+        const category =
+          String(tx.category || tx.categoryName || "Other").trim() || "Other";
+        const amount = Math.abs(Number(tx.amount || 0) || 0);
 
         if (amount > 0) {
           totalsByCategory[category] = (totalsByCategory[category] || 0) + amount;
         }
       });
 
-      const sorted = Object.entries(totalsByCategory)
-        .sort((a, b) => b[1] - a[1]);
+      const sorted = Object.entries(totalsByCategory).sort((a, b) => b[1] - a[1]);
 
       if (!sorted.length) {
         if (spendingChart) {
@@ -372,7 +373,7 @@
       const data = sorted.map(([, amount]) => amount);
 
       const colorMap = {};
-      categories.forEach(cat => {
+      categories.forEach((cat) => {
         colorMap[cat.name] = cat.color;
       });
 
@@ -384,10 +385,12 @@
         "#fb7185",
         "#facc15",
         "#60a5fa",
-        "#a78bfa"
+        "#a78bfa",
       ];
 
-      const colors = labels.map((label, index) => colorMap[label] || fallbackColors[index % fallbackColors.length]);
+      const colors = labels.map(
+        (label, index) => colorMap[label] || fallbackColors[index % fallbackColors.length],
+      );
 
       if (spendingChart) {
         spendingChart.destroy();
@@ -402,9 +405,9 @@
             {
               data,
               backgroundColor: colors,
-              borderWidth: 2
-            }
-          ]
+              borderWidth: 2,
+            },
+          ],
         },
         options: {
           responsive: true,
@@ -413,7 +416,7 @@
           plugins: {
             legend: {
               display: true,
-              position: "bottom"
+              position: "bottom",
             },
             tooltip: {
               callbacks: {
@@ -422,26 +425,27 @@
                   const total = data.reduce((sum, n) => sum + n, 0);
                   const percent = total ? ((value / total) * 100).toFixed(1) : "0.0";
                   return `${context.label}: $${value.toFixed(2)} (${percent}%)`;
-                }
-              }
-            }
-          }
+                },
+              },
+            },
+          },
         },
-        plugins: [centerTextPlugin]
+        plugins: [centerTextPlugin],
       });
 
       const totalSpent = data.reduce((sum, n) => sum + n, 0);
 
-      list.innerHTML = sorted.map(([category, amount]) => {
-        const percent = totalSpent ? ((amount / totalSpent) * 100).toFixed(1) : "0.0";
-        return `
-                <li>
-                    <span>${category}</span>
-                    <span>$${amount.toFixed(2)} (${percent}%)</span>
-                </li>
-            `;
-      }).join("");
-
+      list.innerHTML = sorted
+        .map(([category, amount]) => {
+          const percent = totalSpent ? ((amount / totalSpent) * 100).toFixed(1) : "0.0";
+          return `
+          <li>
+            <span>${escapeHtml(category)}</span>
+            <span>$${amount.toFixed(2)} (${percent}%)</span>
+          </li>
+        `;
+        })
+        .join("");
     } catch (error) {
       console.error("Failed to load Total Spending chart:", error);
 
@@ -455,13 +459,26 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", loadSpendingChart);
-  window.addEventListener("plutus-db-changed", loadSpendingChart);
+  document.addEventListener("DOMContentLoaded", () => {
+    renderSummaryPage();
+    loadSpendingChart();
+  });
+
+  window.addEventListener("plutus-db-changed", () => {
+    renderSummaryPage();
+    loadSpendingChart();
+  });
+
+  dockBtn.addEventListener("click", () => {
+    renderSummaryPage();
+    loadSpendingChart();
+  });
   // end of Total Spending card segment
 
   window.addEventListener("plutus-db-changed", renderSummaryPage);
   dockBtn.addEventListener("click", () => {
     renderSummaryPage();
   });
+
   renderSummaryPage();
 })();
