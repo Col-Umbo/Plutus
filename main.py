@@ -19,6 +19,7 @@ class CallHandler(QObject):
     database_changed = Signal(str)
 
     # Define class structures
+    password : str
     con : sqlite.Connection
     cursor : sqlite.Cursor
     expenses =[]
@@ -26,6 +27,7 @@ class CallHandler(QObject):
     budget : classes.Budget
     expenseCategories = []
     incomeCategories = []
+    encrypted = False
     def __init__(self):
         super().__init__()
         # Open connection
@@ -33,23 +35,26 @@ class CallHandler(QObject):
         self.cursor = self.con.cursor()
         # Please note that the database expects all dates to follow the below format. Uncomment and test it if you're unsure what this means.
         # print(datetime.date.today().strftime('%m-%y'))
-        self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'", 0.00)')
-        self.con.commit()
-        self._reload_cache()
-        self._last_data_version = self._read_data_version()
-        self._db_watch_timer = QTimer(self)
-        self._db_watch_timer.setInterval(1000)
-        self._db_watch_timer.timeout.connect(self._check_external_db_changes)
-        self._db_watch_timer.start()
+        try:
+            self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'", 0.00)')
+            self.con.commit()
+            self._reload_cache()
+            self._last_data_version = self._read_data_version()
+            self.con.commit()
+            self._db_watch_timer = QTimer(self)
+            self._db_watch_timer.setInterval(1000)
+            self._db_watch_timer.timeout.connect(self._check_external_db_changes)
+            self._db_watch_timer.start()
+            self.encrypted = False
+        except sqlite.Error:
+            self.encrypted = True
+            self._last_data_version = 1
         
-        # Create settings table if it doesn't exist (password lock)
-        self.cursor.execute("""
-        CREATE TABLE IF NOT EXISTS AppSettings (
-        key TEXT PRIMARY KEY,
-        value TEXT )
-        """)
-        self.con.commit()
 
+    def _unlock(self):
+        self.cursor.execute("PRAGMA key = '"+self.password+"'")
+        print("unlock successful")
+        
     def _read_data_version(self):
         try:
             self.cursor.execute('PRAGMA data_version')
@@ -327,54 +332,58 @@ class CallHandler(QObject):
         for row in rows:
             amount += float(row[0] or 0.0)
         return amount
-    
-    # Password methods will go here
-    
-    # @Slot(str)
-    # def set_password(password):
-    #     self.cursor.execute("ATTACH DATABASE 'plutus.db' AS encrypted KEY ?",(password,))
-    #     con.commit()
 
-    # New password approach
-    def _hash_password(self, password):
-        return hashlib.sha256(password.encode()).hexdigest()
 
     @Slot(str)
     def set_password(self, password):
-        hashed = self._hash_password(password)
-        self.cursor.execute(
-            "INSERT OR REPLACE INTO AppSettings (key, value) VALUES ('password', ?)",
-            (hashed,)
-        )
-        self.con.commit()
+        # Unfortunately variables do not work on PRAGMA statements. Casting is a necessary flaw here.
+        if not self.encrypted:
+            self.cursor.execute("ATTACH DATABASE 'encrypted.db' AS encrypted KEY '"+password+"'")
+            self.cursor.execute("SELECT sqlcipher_export('encrypted')")
+            self.cursor.execute("DETACH DATABASE encrypted")
+            self.con.commit()
+            self.con.close()
+            os.remove("plutus.db")
+            os.rename("encrypted.db","plutus.db")
+            self.con = sqlite.connect("plutus.db")
+            self.cursor = self.con.cursor()
+            # self.cursor.execute("PRAGMA cipher_use_hmac=off")
+            self.con.commit()
+            self.password = password
+            self.encrypted = True
+        else:
+            self.cursor.execute("PRAGMA rekey = '"+password+"'")
         
     @Slot()
     def disable_password_lock(self):
-        self.cursor.execute(
-            "DELETE FROM AppSettings WHERE key='password'"
-        )
+        self.cursor.execute("ATTACH DATABASE 'plaintext.db' AS plaintext KEY ''")
+        self.cursor.execute("SELECT sqlcipher_export('plaintext')")
+        self.cursor.execute("DETACH DATABASE plaintext")
         self.con.commit()
+        os.remove("plutus.db")
+        os.rename("plaintext.db","plutus.db")
+        self.con = sqlite.connect("plutus.db")
+        self.cursor = self.con.cursor()
 
     @Slot(str, result=bool)
     def verify_password(self, password):
-        self.cursor.execute(
-            "SELECT value FROM AppSettings WHERE key='password'"
-        )
-        row = self.cursor.fetchone()
-
-        if not row:
+        self.cursor.execute("PRAGMA key ='"+password+"'")
+        try:
+            self.cursor.execute("SELECT count(*) FROM sqlite_master;")
+            #This tests if the password was actually correct
+            self._check_external_db_changes()
+            self._db_watch_timer = QTimer(self)
+            self._db_watch_timer.setInterval(1000)
+            self._db_watch_timer.timeout.connect(self._check_external_db_changes)
+            self._db_watch_timer.start()
+            self.password = password
+            return True
+        except sqlite.Error:
             return False
-
-        hashed_input = self._hash_password(password)
-        return hashed_input == row[0]
 
     @Slot(result=bool)
     def has_password(self):
-        self.cursor.execute(
-            "SELECT value FROM AppSettings WHERE key='password'"
-        )
-        return self.cursor.fetchone() is not None
-    # end of new password approach
+        return self.encrypted
         
 class MainWindow(QMainWindow):
     def __init__(self):
