@@ -87,109 +87,216 @@ themeToggleBtn?.addEventListener("click", () => {
 document.addEventListener("DOMContentLoaded", updateDockIcons);
 
 // ==================== Password Overlay (guarded - not built yet) ====================
-// (function initPasswordOverlay() {
-//   const overlay = $("#overlay");
-//   const passwordBtn = $("#passwordBtn");
-//   if (!overlay || !passwordBtn) return;
-
-//   const open = () => overlay.classList.add("open");
-//   const close = () => overlay.classList.remove("open");
-
-//   passwordBtn.addEventListener("click", open);
-
-//   overlay.addEventListener("click", (e) => {
-//     if (e.target === overlay) close();
-//   });
-
-//   document.addEventListener("keydown", (e) => {
-//     if (e.key === "Escape" && overlay.classList.contains("open")) close();
-//   });
-// })();
-
 const passwordBtn = document.getElementById("passwordBtn");
 const overlay = document.getElementById("passwordOverlay");
-const input = document.getElementById("passwordInput");
-const submitBtn = document.getElementById("passwordSubmit");
-const cancelBtn = document.getElementById("passwordCancel");
-const errorText = document.getElementById("passwordError");
 const title = document.getElementById("passwordTitle");
+const subtitle = document.getElementById("passwordSubtitle");
 
-let isLocked = false;
-let creatingPassword = false;
+const setupFields = document.getElementById("passwordSetFields");
+const disableFields = document.getElementById("passwordDisableFields");
+const unlockFields = document.getElementById("passwordUnlockFields");
 
-// Open overlay
-function openOverlay(mode) {
-    overlay.classList.add("open");
-    input.value = "";
-    errorText.style.display = "none";
+const passwordInput = document.getElementById("passwordInput");
+const passwordConfirmInput = document.getElementById("passwordConfirmInput");
+const passwordDisableInput = document.getElementById("passwordDisableInput");
+const passwordUnlockInput = document.getElementById("passwordUnlockInput");
 
-    if (mode === "create") {
-        title.textContent = "Create Password";
-        creatingPassword = true;
-    } else {
-        title.textContent = "Enter Password";
-        creatingPassword = false;
-    }
+const setupActions = document.getElementById("passwordSetupActions");
+const disableActions = document.getElementById("passwordDisableActions");
+const unlockActions = document.getElementById("passwordUnlockActions");
+
+const setupSubmitBtn = document.getElementById("passwordSubmit");
+const setupCancelBtn = document.getElementById("passwordCancel");
+const disableBtn = document.getElementById("passwordDisableBtn");
+const disableCancelBtn = document.getElementById("passwordDisableCancel");
+const unlockBtn = document.getElementById("passwordUnlockBtn");
+
+const passwordError = document.getElementById("passwordError");
+const passwordSuccess = document.getElementById("passwordSuccess");
+
+let passwordOverlayMode = "setup"; // setup | disable | unlock
+let appLocked = false;
+
+function clearPasswordMessages() {
+  passwordError.textContent = "";
+  passwordSuccess.textContent = "";
+  passwordError.classList.add("hidden");
+  passwordSuccess.classList.add("hidden");
 }
 
-// Close overlay
-function closeOverlay() {
-    overlay.classList.remove("open");
+function clearPasswordInputs() {
+  [passwordInput, passwordConfirmInput, passwordDisableInput, passwordUnlockInput].forEach((el) => {
+    if (el) el.value = "";
+  });
 }
 
-// Lock app
-function lockApp() {
-    isLocked = true;
-    openOverlay("enter");
+function showPasswordError(message) {
+  passwordError.textContent = message;
+  passwordError.classList.remove("hidden");
+  passwordSuccess.classList.add("hidden");
 }
 
-// Unlock app
-function unlockApp() {
-    isLocked = false;
-    closeOverlay();
+function showPasswordSuccess(message) {
+  passwordSuccess.textContent = message;
+  passwordSuccess.classList.remove("hidden");
+  passwordError.classList.add("hidden");
 }
 
-// Button click
-passwordBtn.addEventListener("click", async () => {
-    const hasPass = await window.handler.has_password();
+function focusPasswordField() {
+  const fieldMap = {
+    setup: passwordInput,
+    disable: passwordDisableInput,
+    unlock: passwordUnlockInput,
+  };
+  const field = fieldMap[passwordOverlayMode];
+  if (field) setTimeout(() => field.focus(), 0);
+}
 
-    if (!hasPass) {
-        openOverlay("create");
-    } else {
-        lockApp();
-    }
+function setPasswordMode(mode) {
+  passwordOverlayMode = mode;
+  clearPasswordMessages();
+  clearPasswordInputs();
+
+  setupFields.classList.toggle("hidden", mode !== "setup");
+  disableFields.classList.toggle("hidden", mode !== "disable");
+  unlockFields.classList.toggle("hidden", mode !== "unlock");
+
+  setupActions.classList.toggle("hidden", mode !== "setup");
+  disableActions.classList.toggle("hidden", mode !== "disable");
+  unlockActions.classList.toggle("hidden", mode !== "unlock");
+
+  if (mode === "setup") {
+    title.textContent = "Set Password Lock";
+    subtitle.textContent = "Create a password to require a lock screen when the application starts.";
+  } else if (mode === "disable") {
+    title.textContent = "Disable Password Lock";
+    subtitle.textContent = "Enter the saved password to turn off the startup password lock.";
+  } else {
+    title.textContent = "Password Lock";
+    subtitle.textContent = "Enter your password to continue to Plutus.";
+  }
+
+  focusPasswordField();
+}
+
+function openPasswordOverlay(mode) {
+  setPasswordMode(mode);
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden", "false");
+}
+
+function closePasswordOverlay(force = false) {
+  if (appLocked && !force) return;
+  overlay.classList.remove("open");
+  overlay.setAttribute("aria-hidden", "true");
+  clearPasswordMessages();
+  clearPasswordInputs();
+}
+
+async function handlePasswordButtonClick() {
+  if (!window.handler) return;
+  const hasPassword = await window.handler.has_password();
+  openPasswordOverlay(hasPassword ? "disable" : "setup");
+}
+
+async function handleSetupSubmit() {
+  const password = passwordInput.value.trim();
+  const confirmPassword = passwordConfirmInput.value.trim();
+
+  if (!password || !confirmPassword) {
+    showPasswordError("Please fill in both password fields.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showPasswordError("Passwords do not match.");
+    return;
+  }
+
+  await window.handler.set_password(password);
+  closePasswordOverlay(true);
+}
+
+async function handleDisableSubmit() {
+  const password = passwordDisableInput.value.trim();
+
+  if (!password) {
+    showPasswordError("Please enter the saved password.");
+    return;
+  }
+
+  const valid = await window.handler.verify_password(password);
+  if (!valid) {
+    showPasswordError("Incorrect password.");
+    return;
+  }
+
+  await window.handler.disable_password_lock();
+  closePasswordOverlay(true);
+}
+
+async function handleUnlockSubmit() {
+  const password = passwordUnlockInput.value.trim();
+
+  if (!password) {
+    showPasswordError("Please enter your password.");
+    return;
+  }
+
+  const valid = await window.handler.verify_password(password);
+  if (!valid) {
+    showPasswordError("Incorrect password.");
+    return;
+  }
+
+  appLocked = false;
+  closePasswordOverlay(true);
+}
+
+passwordBtn?.addEventListener("click", handlePasswordButtonClick);
+setupSubmitBtn?.addEventListener("click", handleSetupSubmit);
+setupCancelBtn?.addEventListener("click", () => closePasswordOverlay());
+disableBtn?.addEventListener("click", handleDisableSubmit);
+disableCancelBtn?.addEventListener("click", () => closePasswordOverlay());
+unlockBtn?.addEventListener("click", handleUnlockSubmit);
+
+overlay?.addEventListener("click", (e) => {
+  if (e.target === overlay && !appLocked) {
+    closePasswordOverlay();
+  }
 });
 
-// Submit password
-submitBtn.addEventListener("click", async () => {
-    const value = input.value.trim();
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && overlay?.classList.contains("open") && !appLocked) {
+    closePasswordOverlay();
+  }
 
-    if (!value) return;
-
-    if (creatingPassword) {
-        await window.handler.set_password(value);
-        lockApp();
-        return;
-    }
-
-    const valid = await window.handler.verify_password(value);
-
-    if (valid) {
-        unlockApp();
-    } else {
-        errorText.style.display = "block";
-    }
+  if (e.key === "Enter" && overlay?.classList.contains("open")) {
+    if (passwordOverlayMode === "setup") handleSetupSubmit();
+    else if (passwordOverlayMode === "disable") handleDisableSubmit();
+    else if (passwordOverlayMode === "unlock") handleUnlockSubmit();
+  }
 });
 
-// Cancel
-cancelBtn.addEventListener("click", () => {
-    closeOverlay();
-});
-
-// Lock on startup if password exists
 window.addEventListener("load", async () => {
-    const hasPass = await window.handler.has_password();
-    if (hasPass) {
-        lockApp();
-    }
+  const waitForHandler = () =>
+    new Promise((resolve) => {
+      if (window.handler) {
+        resolve(window.handler);
+        return;
+      }
+      const timer = setInterval(() => {
+        if (window.handler) {
+          clearInterval(timer);
+          resolve(window.handler);
+        }
+      }, 50);
+    });
+
+  await waitForHandler();
+  const hasPassword = await window.handler.has_password();
+  if (hasPassword) {
+    appLocked = true;
+    openPasswordOverlay("unlock");
+  }
 });

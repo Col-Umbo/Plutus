@@ -347,6 +347,13 @@ class CallHandler(QObject):
             (hashed,)
         )
         self.con.commit()
+        
+    @Slot()
+    def disable_password_lock(self):
+        self.cursor.execute(
+            "DELETE FROM AppSettings WHERE key='password'"
+        )
+        self.con.commit()
 
     @Slot(str, result=bool)
     def verify_password(self, password):

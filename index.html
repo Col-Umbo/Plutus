@@ -18,23 +18,60 @@
 </head>
 
 <!-- =============== Password Overlay =============== -->
-<div id="passwordOverlay" class="overlay">
-    <div class="palette">
+<div id="passwordOverlay" class="overlay" aria-hidden="true">
+    <div class="palette password-palette" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
         <div class="palTop">
             <h2 id="passwordTitle">Enter Password</h2>
         </div>
 
-        <div style="padding: 20px;">
-            <input id="passwordInput" type="password" placeholder="Enter password" />
+        <div class="passwordBody">
+            <p id="passwordSubtitle" class="muted passwordSubtitle"></p>
 
-            <div style="margin-top: 15px; display:flex; gap:10px;">
-                <button id="passwordSubmit" class="btn primary">Submit</button>
-                <button id="passwordCancel" class="btn secondary">Cancel</button>
+            <!-- Mode 1: Set password -->
+            <div id="passwordSetFields">
+                <label>
+                    Set password
+                    <input id="passwordInput" type="password" placeholder="Enter password" />
+                </label>
+
+                <label>
+                    Reenter password
+                    <input id="passwordConfirmInput" type="password" placeholder="Reenter password" />
+                </label>
             </div>
 
-            <p id="passwordError" style="color:red; display:none; margin-top:10px;">
-                Incorrect password
-            </p>
+            <!-- Mode 2: Disable lock -->
+            <div id="passwordDisableFields" class="hidden">
+                <label>
+                    Enter saved password
+                    <input id="passwordDisableInput" type="password" placeholder="Enter saved password" />
+                </label>
+            </div>
+
+            <!-- Startup unlock screen -->
+            <div id="passwordUnlockFields" class="hidden">
+                <label>
+                    Password
+                    <input id="passwordUnlockInput" type="password" placeholder="Enter password" />
+                </label>
+            </div>
+
+            <p id="passwordError" class="passwordMessage passwordMessageError hidden"></p>
+            <p id="passwordSuccess" class="passwordMessage passwordMessageSuccess hidden"></p>
+
+            <div id="passwordSetupActions" class="modal-actions">
+                <button id="passwordSubmit" class="btn primary" type="button">Submit</button>
+                <button id="passwordCancel" class="btn secondary" type="button">Cancel</button>
+            </div>
+
+            <div id="passwordDisableActions" class="modal-actions hidden">
+                <button id="passwordDisableBtn" class="btn danger" type="button">Disable Lock</button>
+                <button id="passwordDisableCancel" class="btn secondary" type="button">Cancel</button>
+            </div>
+
+            <div id="passwordUnlockActions" class="modal-actions hidden">
+                <button id="passwordUnlockBtn" class="btn primary" type="button">Submit</button>
+            </div>
         </div>
     </div>
 </div>
@@ -78,7 +115,7 @@
             <!-- Password Button -->
             <button class="topbarButtons" id="passwordBtn" type="button" title="Enable Password">
                 <img class="lockIcon" src="Icons/lock_dark-mode.png" data-dark="Icons/lock_dark-mode.png"
-                data-light="Icons/lock_light-mode.png" alt="lock icon" />
+                    data-light="Icons/lock_light-mode.png" alt="lock icon" />
             </button>
         </div>
     </header>

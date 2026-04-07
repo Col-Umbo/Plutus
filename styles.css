@@ -374,7 +374,7 @@ header {
   color: var(--text);
 }
 
-/* ==================== Password Overlay Styles ==================== */
+/* ==================== Password Lock / Modal Styles ==================== */
 #passwordOverlay input {
   width: 100%;
   padding: 10px;
@@ -428,6 +428,50 @@ header {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.password-palette {
+  width: min(520px, 100%);
+}
+
+.passwordBody {
+  padding: 20px;
+}
+
+.passwordSubtitle {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.passwordMessage {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.passwordMessageError {
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.passwordMessageSuccess {
+  color: #bbf7d0;
+  background: rgba(22, 163, 74, 0.16);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+body.light .passwordMessageError {
+  color: #991b1b;
+  background: rgba(254, 226, 226, 0.95);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+body.light .passwordMessageSuccess {
+  color: #166534;
+  background: rgba(220, 252, 231, 0.95);
+  border-color: rgba(34, 197, 94, 0.25);
 }
 
 /* ==================== Main Content / Page Styles ==================== */
