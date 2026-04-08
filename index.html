@@ -17,9 +17,68 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
+<!-- =============== Password Overlay =============== -->
+<div id="passwordOverlay" class="overlay" aria-hidden="true">
+    <div class="palette password-palette" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
+        <div class="palTop">
+            <h2 id="passwordTitle">Enter Password</h2>
+        </div>
+
+        <div class="passwordBody">
+            <p id="passwordSubtitle" class="muted passwordSubtitle"></p>
+
+            <!-- Mode 1: Set password -->
+            <div id="passwordSetFields">
+                <label>
+                    Set password
+                    <input id="passwordInput" type="password" placeholder="Enter password" />
+                </label>
+
+                <label>
+                    Reenter password
+                    <input id="passwordConfirmInput" type="password" placeholder="Reenter password" />
+                </label>
+            </div>
+
+            <!-- Mode 2: Disable lock -->
+            <div id="passwordDisableFields" class="hidden">
+                <label>
+                    Enter saved password
+                    <input id="passwordDisableInput" type="password" placeholder="Enter saved password" />
+                </label>
+            </div>
+
+            <!-- Startup unlock screen -->
+            <div id="passwordUnlockFields" class="hidden">
+                <label>
+                    Password
+                    <input id="passwordUnlockInput" type="password" placeholder="Enter password" />
+                </label>
+            </div>
+
+            <p id="passwordError" class="passwordMessage passwordMessageError hidden"></p>
+            <p id="passwordSuccess" class="passwordMessage passwordMessageSuccess hidden"></p>
+
+            <div id="passwordSetupActions" class="modal-actions">
+                <button id="passwordSubmit" class="btn primary" type="button">Submit</button>
+                <button id="passwordCancel" class="btn secondary" type="button">Cancel</button>
+            </div>
+
+            <div id="passwordDisableActions" class="modal-actions hidden">
+                <button id="passwordDisableBtn" class="btn danger" type="button">Disable Lock</button>
+                <button id="passwordDisableCancel" class="btn secondary" type="button">Cancel</button>
+            </div>
+
+            <div id="passwordUnlockActions" class="modal-actions hidden">
+                <button id="passwordUnlockBtn" class="btn primary" type="button">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <body>
     <!-- =============== Backend Connection =============== -->
-   <script>
+    <script>
         new QWebChannel(qt.webChannelTransport, function (channel) {
             window.handler = channel.objects.handler;
             if (window.handler?.database_changed?.connect) {
@@ -55,8 +114,8 @@
 
             <!-- Password Button -->
             <button class="topbarButtons" id="passwordBtn" type="button" title="Enable Password">
-                <!-- Insert lock icon here -->
-                <b>Lock</b>
+                <img class="lockIcon" src="Icons/lock_dark-mode.png" data-dark="Icons/lock_dark-mode.png"
+                    data-light="Icons/lock_light-mode.png" alt="lock icon" />
             </button>
         </div>
     </header>
@@ -70,15 +129,20 @@
 
             <!-- ~~~~~~~~~~ Summary Page ~~~~~~~~~~ -->
             <article class="view active" id="view-home" data-title="Home">
+
+                <!-- Page Header -->
                 <div class="contentHeader">
                     <h1>Home</h1>
                     <p>Get a summary and overview of your finances.</p>
                 </div>
 
+                <!-- Card Container -->
                 <div class="grid home-grid">
+
+                    <!-- This Month's Snapshot Card -->
                     <section class="card home-snapshot">
                         <div class="cardTop">
-                            <h3>This Month Snapshot</h3>
+                            <h2>This Month's Snapshot</h2>
                             <span id="summaryMonthLabel" class="muted"></span>
                         </div>
 
@@ -102,77 +166,70 @@
                         </div>
                     </section>
 
-                    <section class="card home-health">
-                        <div class="cardTop">
-                            <h3>Budget Health</h3>
-                        </div>
-
-                        <div class="summary-health-list">
-                            <div class="summary-health-row">
-                                <span>Budget Used</span>
-                                <b id="summaryBudgetUsed">0%</b>
-                            </div>
-                            <div class="summary-health-row">
-                                <span>Days Left In Month</span>
-                                <b id="summaryDaysLeft">0</b>
-                            </div>
-                            <div class="summary-health-row">
-                                <span>Projected Month-End Spend</span>
-                                <b id="summaryProjectedSpend">$0.00</b>
-                            </div>
-                        </div>
-                        <p id="summaryBudgetStatus">Set a monthly budget to see better projections.</p>
-                    </section>
-
-                    <section class="card home-topcats">
-                        <div class="cardTop">
-                            <h3>Top Spending Categories</h3>
-                        </div>
-                        <ul id="summaryTopCategories" class="summary-list"></ul>
-                        <div id="summaryTopCategoriesEmpty" class="empty">
-                            No expense activity this month yet.
-                        </div>
-                            <h3>Total Spending</h3>
-                        </div>
-                        <p>Include total spending pie chart with percentages of how much spent from each category.</p>
-                    </section>
-                </div>
-
-                <div class="grid">
+                    <!-- Total Spending Card -->
                     <section class="card">
                         <div class="cardTop">
-                            <h3>Recent Transactions</h3>
+                            <h2>Total Spending</h2>
                         </div>
-                        <p>Show list of recent transactions.</p>
-                    </section>
-                </div>
 
-                <div class="grid">
-                    <section class="card">
-                        <div class="cardTop">
-                            <h3>Remaining Budget</h3>
-                        </div>
-                        <p>Show remaining budget and categorized status bar.</p>
-                    </section>
-                </div>
+                        <div class="spending-container">
+                            <!-- Pie Chart -->
+                            <div class="chartWrap">
+                                <canvas id="spendingPie"></canvas>
+                            </div>
 
-                <div class="grid">
-                    <section class="card">
-                        <div class="cardTop">
-                            <h3>Top Categories</h3>
+                            <!-- Category List -->
+                            <ul id="spendingList" class="totals"></ul>
                         </div>
-                        <p>Show list of top categories (categories where the most was spent).</p>
+
+                        <div id="spendingEmpty" class="empty">
+                            No spending data yet.
+                        </div>
                     </section>
 
-                    <section class="card home-recent">
+                    <!-- Budget Overview Card -->
+                    <section class="card budget-overview">
                         <div class="cardTop">
-                            <h3>Recent Activity</h3>
+                            <h2>Budget Overview</h2>
                         </div>
-                        <ul id="summaryRecentActivity" class="summary-list"></ul>
-                        <div id="summaryRecentEmpty" class="empty">
-                            No transactions yet.
+
+                        <!-- Budget Health Card -->
+                        <div class="card home-health">
+                            <div class="cardTop">
+                                <h3>Budget Health</h3>
+                            </div>
+
+                            <div class="summary-health-list">
+                                <div class="summary-health-row">
+                                    <span>Budget Used</span>
+                                    <b id="summaryBudgetUsed">0%</b>
+                                </div>
+                                <div class="summary-health-row">
+                                    <span>Days Left In Month</span>
+                                    <b id="summaryDaysLeft">0</b>
+                                </div>
+                                <div class="summary-health-row">
+                                    <span>Projected Month-End Spend</span>
+                                    <b id="summaryProjectedSpend">$0.00</b>
+                                </div>
+                            </div>
+                            <p id="summaryBudgetStatus">Set a monthly budget to see better projections.</p>
+                        </div>
+
+                        <br>
+
+                        <!-- Top Spending Categories Card -->
+                        <div class="card home-topcats">
+                            <div class="cardTop">
+                                <h3>Top Spending Categories</h3>
+                            </div>
+                            <ul id="summaryTopCategories" class="summary-list"></ul>
+                            <div id="summaryTopCategoriesEmpty" class="empty">
+                                No expense activity this month yet.
+                            </div>
                         </div>
                     </section>
+
                 </div>
             </article>
 
@@ -379,7 +436,7 @@
                             <div class="row row-inline">
                                 <label class="checkbox">
                                     <input id="allocateRemaining" type="checkbox" />
-                                    Allocate remaining unallocated balance
+                                    Allocate remaining balance
                                 </label>
 
                                 <div class="btnRow">
@@ -541,6 +598,8 @@
                 </div>
 
                 <div class="grid goals-grid">
+
+                    <!-- Add What-If Scenario -->
                     <section class="card goals-create">
                         <div class="cardTop">
                             <h3>Add What-If Scenario</h3>
@@ -591,6 +650,7 @@
                         </form>
                     </section>
 
+                    <!-- Projection Summary -->
                     <section class="card goals-summary">
                         <div class="cardTop">
                             <h3>Projection Summary</h3>
@@ -640,6 +700,7 @@
                         <div id="goalsBudgetStatus" class="muted goals-status"></div>
                     </section>
 
+                    <!-- Scenario List Card -->
                     <section class="card goals-list">
                         <div class="cardTop">
                             <h3>Scenario List</h3>
@@ -662,6 +723,7 @@
                         </div>
                     </section>
 
+                    <!-- Budget Category Impact Card -->
                     <section class="card goals-impact">
                         <div class="cardTop">
                             <h3>Budget Category Impact</h3>
@@ -694,56 +756,41 @@
 
     <!-- =============== Dock Navigation (outside of main content) =============== -->
     <nav class="dock" aria-label="Dock Navigation">
-        <button class="dockBtn active" data-target="home" type="button" aria-current="page">
+        <button class="dockBtn active" data-target="home" type="button" id="home" aria-current="page">
             <div class="btnTip">Financial Summary Page</div>
             <img class="dockIcon" src="Icons/home_dark-mode.png" data-dark="Icons/home_dark-mode.png"
                 data-light="Icons/home_light-mode.png" alt="home icon" />
             <div class="dockLabel">Summary</div>
         </button>
 
-        <button class="dockBtn" data-target="transactions" type="button">
+        <button class="dockBtn" data-target="transactions" id="transaction" type="button">
             <div class="btnTip">Log Transactions</div>
             <img class="dockIcon" src="Icons/transactions_dark-mode.png" data-dark="Icons/transactions_dark-mode.png"
                 data-light="Icons/transactions_light-mode.png" alt="transactions icon" />
             <div class="dockLabel">Transactions</div>
         </button>
 
-        <button class="dockBtn" data-target="budget" type="button">
+        <button class="dockBtn" data-target="budget" id="budget" type="button">
             <div class="btnTip">Set Budget</div>
             <img class="dockIcon" src="Icons/budget_dark-mode.png" data-dark="Icons/budget_dark-mode.png"
                 data-light="Icons/budget_light-mode.png" alt="transactions icon" />
             <div class="dockLabel">Budget</div>
         </button>
 
-        <button class="dockBtn" data-target="categories" type="button">
+        <button class="dockBtn" data-target="categories" id="categories" type="button">
             <div class="btnTip">Manage Categories</div>
             <img class="dockIcon" src="Icons/categories_dark-mode.png" data-dark="Icons/categories_dark-mode.png"
                 data-light="Icons/categories_light-mode.png" alt="categories icon" />
             <div class="dockLabel">Categories</div>
         </button>
 
-        <button class="dockBtn" data-target="goals" type="button">
+        <button class="dockBtn" data-target="goals" id="goals" type="button">
             <div class="btnTip">Set Goals</div>
             <img class="dockIcon" src="Icons/goals_dark-mode.png" data-dark="Icons/goals_dark-mode.png"
                 data-light="Icons/goals_light-mode.png" alt="transactions icon" />
             <div class="dockLabel">Goals</div>
         </button>
     </nav>
-
-
-
-
-    <!-- =============== Password Overlay =============== -->
-    <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="Password palette">
-        <div class="palette" role="document">
-            <div class="palTop">
-                <h3>Enable Password Lock</h3>
-            </div>
-            <p>Password lock feature coming soon.</p>
-        </div>
-    </div>
-
-
 
     <!-- =============== Footer =============== -->
     <footer class="footer">

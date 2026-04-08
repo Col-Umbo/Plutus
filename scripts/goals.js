@@ -28,6 +28,7 @@
   const budgetProjectedEl = $("#goalsBudgetProjected");
   const budgetDeltaEl = $("#goalsBudgetDelta");
   const budgetStatusEl = $("#goalsBudgetStatus");
+  const dockBtn = document.getElementById("goals");
 
   if (
     !form ||
@@ -110,11 +111,11 @@
 
     return Array.isArray(list)
       ? list
-        .map((x) => ({
-          name: String(x.name || "").trim(),
-          color: String(x.color || "#94a3b8"),
-        }))
-        .filter((x) => x.name)
+          .map((x) => ({
+            name: String(x.name || "").trim(),
+            color: String(x.color || "#94a3b8"),
+          }))
+          .filter((x) => x.name)
       : [];
   }
 
@@ -129,11 +130,11 @@
       overall: Math.max(0, Number(budget.amount || 0)),
       allocations: Array.isArray(allocations)
         ? allocations
-          .map((a) => ({
-            category: String(a.category || "").trim(),
-            limit: Math.max(0, Number(a.limit || 0)),
-          }))
-          .filter((a) => a.category)
+            .map((a) => ({
+              category: String(a.category || "").trim(),
+              limit: Math.max(0, Number(a.limit || 0)),
+            }))
+            .filter((a) => a.category)
         : [],
     };
   }
@@ -495,6 +496,10 @@
     setTimeout(render, 50);
   });
   window.addEventListener("plutus-db-changed", () => {
+    render();
+  });
+
+  dockBtn.addEventListener("click", () => {
     render();
   });
 

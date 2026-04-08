@@ -27,6 +27,8 @@
   const searchInput = $("#searchInput");
   const pills = $$(".pill");
 
+  const dockBtn = document.getElementById("transaction");
+
   let currentFilter = "all"; // all | income | expense
 
   function money(n) {
@@ -321,8 +323,12 @@
     loadTransactionsFromBackend();
   });
 
+  dockBtn.addEventListener("click", () => {
+    populateCategories();
+    loadTransactionsFromBackend();
+  });
+
   // Init
   populateCategories();
   loadTransactionsFromBackend();
 })();
-
