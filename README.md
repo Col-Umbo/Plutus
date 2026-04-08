@@ -48,11 +48,11 @@ Plutus is a desktop personal finance tracker built with Python (PySide6) and an 
   - `Expenses`
   - `Goals`
 - Frontend app state currently uses `localStorage` for transactions, categories, budget state, goals, and theme preference
+- Optional `SqlCipher` database encryption
 
 ## Current Status Notes
-- `Summary` page is a placeholder ("Coming Soon")
-- Password lock UI exists, but lock behavior is not implemented
-- JavaScript currently persists and computes from `localStorage`; database-backed synchronization is only partially wired through the Python `QWebChannel` handler
+- `Summary` page completed
+- Password lock logic complete, UI for password changing needs to be added.
 - `index.html` includes backend test calls in an inline script (example `log_expense` / `log_income` calls) that should be removed for production use
 
 ## Requirements

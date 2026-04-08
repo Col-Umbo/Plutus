@@ -381,6 +381,8 @@ class CallHandler(QObject):
         os.rename("plaintext.db","plutus.db")
         self.con = sqlite.connect("plutus.db")
         self.cursor = self.con.cursor()
+        self.password = ""
+        self.encrypted = False
 
     @Slot(str, result=bool)
     def verify_password(self, password):
