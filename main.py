@@ -53,7 +53,6 @@ class CallHandler(QObject):
 
     def _unlock(self):
         self.cursor.execute("PRAGMA key = '"+self.password+"'")
-        print("unlock successful")
         
     def _read_data_version(self):
         try:
