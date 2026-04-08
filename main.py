@@ -17,7 +17,6 @@ import hashlib
 
 class CallHandler(QObject):
     database_changed = Signal(str)
-
     # Define class structures
     password : str
     con : sqlite.Connection
@@ -49,10 +48,10 @@ class CallHandler(QObject):
         except sqlite.Error:
             self.encrypted = True
             self._last_data_version = 1
-        
 
     def _unlock(self):
-        self.cursor.execute("PRAGMA key = '"+self.password+"'")
+        if self.encrypted:
+            self.cursor.execute("PRAGMA key = '"+self.password+"'")
         
     def _read_data_version(self):
         try:
@@ -121,6 +120,7 @@ class CallHandler(QObject):
     # take an argument from javascript. These only work with @Slot defining the accepted and returned parameter types
     @Slot(str, float, str, bool, int, str, bool)
     def log_expense(self, name, amount, category, recurring, frequency, endDate, credit):
+        self._unlock()
         today = datetime.date.today().strftime('%d-%m-%y')
         self.cursor.execute(
         '''
@@ -151,12 +151,15 @@ class CallHandler(QObject):
 
     @Slot(str, result=str)
     def get_expenses(self, month):
+        self._unlock()
         return json.dumps([expense.__dict__ for expense in self.expenses],default=vars)
     @Slot(str, result=str)
     def get_income(self, month):
+        self._unlock()
         return json.dumps([income.__dict__ for income in self.income],default=vars)
     @Slot(int)
     def delete_expense(self, id):
+        self._unlock()
         self.cursor.execute("DELETE FROM Expenses WHERE id=?",(id,))
         self.con.commit()
         for expense in self.budget.expenses:
@@ -165,6 +168,7 @@ class CallHandler(QObject):
                 break
     @Slot(int)
     def delete_income(self, id):
+        self._unlock()
         self.cursor.execute("DELETE FROM Income WHERE id=?",(id,))
         self.con.commit()
         for income in self.budget.income:
@@ -173,12 +177,15 @@ class CallHandler(QObject):
                 break
     @Slot(result=str)
     def get_expense_categories(self):
+        self._unlock()
         return json.dumps([category.__dict__ for category in self.expenseCategories],default=vars)
     @Slot(result=str)
     def get_income_categories(self):
+        self._unlock()
         return json.dumps([category.__dict__ for category in self.incomeCategories],default=vars)
     @Slot(str)
     def delete_expense_category(self, name):
+        self._unlock()
         self.cursor.execute("DELETE FROM ExpenseCategories WHERE name=?",(name,))
         self.cursor.execute("DELETE FROM Expenses WHERE categoryName=?",(name,))
         self.cursor.execute("DELETE FROM BudgetAllocations WHERE category=?",(name,))
@@ -192,6 +199,7 @@ class CallHandler(QObject):
                 break
     @Slot(str)
     def delete_income_category(self, name):
+        self._unlock()
         self.cursor.execute("DELETE FROM IncomeCategories WHERE name=?",(name,))
         self.cursor.execute("DELETE FROM Income WHERE categoryName=?",(name,))
         self.cursor.execute("DELETE FROM BudgetAllocations WHERE category=?",(name,))
@@ -205,6 +213,7 @@ class CallHandler(QObject):
                 break
     @Slot(bool, str, float, str)
     def add_category(self, categoryType, name, amount, color):
+        self._unlock()
         if categoryType is False:
             self.cursor.execute(
                 'INSERT INTO ExpenseCategories (name, amount, color) VALUES (?, ?, ?)',
@@ -222,6 +231,7 @@ class CallHandler(QObject):
     # I (Ethan) added this
     @Slot(float)
     def set_budget_amount(self, amount):
+        self._unlock()
         month = self.current_month_key()
         self.cursor.execute(
             '''
@@ -234,6 +244,7 @@ class CallHandler(QObject):
         self.con.commit()
     @Slot(result=str)
     def get_budget_amount(self):
+        self._unlock()
         month = self.current_month_key()
         self.cursor.execute(
             'SELECT amount FROM Budgets WHERE date = ?',
@@ -247,6 +258,7 @@ class CallHandler(QObject):
         })
     @Slot(str, float)
     def upsert_budget_allocation(self, category, limitAmount):
+        self._unlock()
         month = self.current_month_key()
         self.cursor.execute(
             '''
@@ -267,6 +279,7 @@ class CallHandler(QObject):
         self.con.commit()
     @Slot(result=str)
     def get_budget_allocations(self):
+        self._unlock()
         month = self.current_month_key()
         self.cursor.execute(
             'SELECT category, limitAmount FROM BudgetAllocations WHERE date = ? ORDER BY category COLLATE NOCASE',
@@ -281,6 +294,7 @@ class CallHandler(QObject):
     # GOALS
     @Slot(str, float, str, str, str)
     def add_goal_scenario(self, scenarioType, amount, category, name, note):
+        self._unlock()
         createdAt = self.current_timestamp_ms()
         self.cursor.execute(
             '''
@@ -292,6 +306,7 @@ class CallHandler(QObject):
         self.con.commit()
     @Slot(result=str)
     def get_goal_scenarios(self):
+        self._unlock()
         self.cursor.execute(
             '''
             SELECT id, scenarioType, amount, category, name, note, createdAt
@@ -314,6 +329,7 @@ class CallHandler(QObject):
         ])
     @Slot(int)
     def delete_goal_scenario(self, scenario_id):
+        self._unlock()
         self.cursor.execute(
             'DELETE FROM GoalScenarios WHERE id = ?',
             (scenario_id,)
@@ -321,10 +337,12 @@ class CallHandler(QObject):
         self.con.commit()
     @Slot()
     def clear_goal_scenarios(self):
+        self._unlock()
         self.cursor.execute('DELETE FROM GoalScenarios')
         self.con.commit()
     @Slot(str, str, result=float)
     def get_net_impact(self, scenarioType, category):
+        self._unlock()
         self.cursor.execute('SELECT amount FROM GoalScenarios WHERE scenarioType=? AND category=?',(scenarioType,category))
         rows = self.cursor.fetchall()
         amount = 0.00
@@ -346,8 +364,8 @@ class CallHandler(QObject):
             os.rename("encrypted.db","plutus.db")
             self.con = sqlite.connect("plutus.db")
             self.cursor = self.con.cursor()
+            self._unlock()
             # self.cursor.execute("PRAGMA cipher_use_hmac=off")
-            self.con.commit()
             self.password = password
             self.encrypted = True
         else:
