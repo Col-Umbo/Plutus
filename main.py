@@ -371,18 +371,48 @@ class CallHandler(QObject):
         else:
             self.cursor.execute("PRAGMA rekey = '"+password+"'")
         
-    @Slot()
+    @Slot(result=bool)
     def disable_password_lock(self):
-        self.cursor.execute("ATTACH DATABASE 'plaintext.db' AS plaintext KEY ''")
-        self.cursor.execute("SELECT sqlcipher_export('plaintext')")
-        self.cursor.execute("DETACH DATABASE plaintext")
-        self.con.commit()
-        os.remove("plutus.db")
-        os.rename("plaintext.db","plutus.db")
-        self.con = sqlite.connect("plutus.db")
-        self.cursor = self.con.cursor()
-        self.password = ""
-        self.encrypted = False
+        connection_closed = False
+        try:
+            self._unlock()
+            try:
+                self.cursor.execute("DETACH DATABASE plaintext")
+            except Exception:
+                pass
+            if os.path.exists("plaintext.db"):
+                os.remove("plaintext.db")
+            self.cursor.execute("ATTACH DATABASE 'plaintext.db' AS plaintext KEY ''")
+            self.cursor.execute("SELECT sqlcipher_export('plaintext')")
+            self.cursor.execute("DETACH DATABASE plaintext")
+            self.con.commit()
+            self.con.close()
+            connection_closed = True
+            os.remove("plutus.db")
+            os.rename("plaintext.db","plutus.db")
+            self.con = sqlite.connect("plutus.db")
+            self.cursor = self.con.cursor()
+            self.password = ""
+            self.encrypted = False
+            return True
+        except Exception:
+            try:
+                self.cursor.execute("DETACH DATABASE plaintext")
+            except Exception:
+                pass
+            if not connection_closed:
+                try:
+                    self.con.close()
+                except Exception:
+                    pass
+            try:
+                self.con = sqlite.connect("plutus.db")
+                self.cursor = self.con.cursor()
+                if self.encrypted and self.password:
+                    self._unlock()
+            except Exception:
+                pass
+            return False
 
     @Slot(str, result=bool)
     def verify_password(self, password):
