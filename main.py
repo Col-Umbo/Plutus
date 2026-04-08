@@ -18,7 +18,7 @@ import hashlib
 class CallHandler(QObject):
     database_changed = Signal(str)
     # Define class structures
-    password : str
+    password = ""
     con : sqlite.Connection
     cursor : sqlite.Cursor
     expenses =[]

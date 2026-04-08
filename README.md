@@ -47,7 +47,6 @@ Plutus is a desktop personal finance tracker built with Python (PySide6) and an 
   - `Income`
   - `Expenses`
   - `Goals`
-- Frontend app state currently uses `localStorage` for transactions, categories, budget state, goals, and theme preference
 - Optional `SqlCipher` database encryption
 
 ## Current Status Notes
