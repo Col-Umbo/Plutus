@@ -48,6 +48,24 @@
                 </label>
             </div>
 
+            <!-- Mode 3: Change password -->
+            <div id="passwordChangeFields" class="hidden">
+                <label>
+                    Current password
+                    <input id="passwordCurrentInput" type="password" placeholder="Enter current password" />
+                </label>
+
+                <label>
+                    New password
+                    <input id="passwordNewInput" type="password" placeholder="Enter new password" />
+                </label>
+
+                <label>
+                    Confirm new password
+                    <input id="passwordNewConfirmInput" type="password" placeholder="Confirm new password" />
+                </label>
+            </div>
+
             <!-- Startup unlock screen -->
             <div id="passwordUnlockFields" class="hidden">
                 <label>
@@ -65,8 +83,14 @@
             </div>
 
             <div id="passwordDisableActions" class="modal-actions hidden">
+                <button id="passwordChangeBtn" class="btn primary" type="button">Change Password</button>
                 <button id="passwordDisableBtn" class="btn danger" type="button">Disable Lock</button>
                 <button id="passwordDisableCancel" class="btn secondary" type="button">Cancel</button>
+            </div>
+
+            <div id="passwordChangeActions" class="modal-actions hidden">
+                <button id="passwordChangeSubmit" class="btn primary" type="button">Change Password</button>
+                <button id="passwordChangeCancel" class="btn secondary" type="button">Cancel</button>
             </div>
 
             <div id="passwordUnlockActions" class="modal-actions hidden">

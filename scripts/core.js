@@ -94,27 +94,35 @@ const subtitle = document.getElementById("passwordSubtitle");
 
 const setupFields = document.getElementById("passwordSetFields");
 const disableFields = document.getElementById("passwordDisableFields");
+const changeFields = document.getElementById("passwordChangeFields");
 const unlockFields = document.getElementById("passwordUnlockFields");
 
 const passwordInput = document.getElementById("passwordInput");
 const passwordConfirmInput = document.getElementById("passwordConfirmInput");
 const passwordDisableInput = document.getElementById("passwordDisableInput");
+const passwordCurrentInput = document.getElementById("passwordCurrentInput");
+const passwordNewInput = document.getElementById("passwordNewInput");
+const passwordNewConfirmInput = document.getElementById("passwordNewConfirmInput");
 const passwordUnlockInput = document.getElementById("passwordUnlockInput");
 
 const setupActions = document.getElementById("passwordSetupActions");
 const disableActions = document.getElementById("passwordDisableActions");
+const changeActions = document.getElementById("passwordChangeActions");
 const unlockActions = document.getElementById("passwordUnlockActions");
 
 const setupSubmitBtn = document.getElementById("passwordSubmit");
 const setupCancelBtn = document.getElementById("passwordCancel");
+const changeBtn = document.getElementById("passwordChangeBtn");
 const disableBtn = document.getElementById("passwordDisableBtn");
 const disableCancelBtn = document.getElementById("passwordDisableCancel");
+const changeSubmitBtn = document.getElementById("passwordChangeSubmit");
+const changeCancelBtn = document.getElementById("passwordChangeCancel");
 const unlockBtn = document.getElementById("passwordUnlockBtn");
 
 const passwordError = document.getElementById("passwordError");
 const passwordSuccess = document.getElementById("passwordSuccess");
 
-let passwordOverlayMode = "setup"; // setup | disable | unlock
+let passwordOverlayMode = "setup"; // setup | disable | change | unlock
 let appLocked = false;
 
 function clearPasswordMessages() {
@@ -125,7 +133,15 @@ function clearPasswordMessages() {
 }
 
 function clearPasswordInputs() {
-  [passwordInput, passwordConfirmInput, passwordDisableInput, passwordUnlockInput].forEach((el) => {
+  [
+    passwordInput,
+    passwordConfirmInput,
+    passwordDisableInput,
+    passwordCurrentInput,
+    passwordNewInput,
+    passwordNewConfirmInput,
+    passwordUnlockInput,
+  ].forEach((el) => {
     if (el) el.value = "";
   });
 }
@@ -146,6 +162,7 @@ function focusPasswordField() {
   const fieldMap = {
     setup: passwordInput,
     disable: passwordDisableInput,
+    change: passwordCurrentInput,
     unlock: passwordUnlockInput,
   };
   const field = fieldMap[passwordOverlayMode];
@@ -159,10 +176,12 @@ function setPasswordMode(mode) {
 
   setupFields.classList.toggle("hidden", mode !== "setup");
   disableFields.classList.toggle("hidden", mode !== "disable");
+  changeFields.classList.toggle("hidden", mode !== "change");
   unlockFields.classList.toggle("hidden", mode !== "unlock");
 
   setupActions.classList.toggle("hidden", mode !== "setup");
   disableActions.classList.toggle("hidden", mode !== "disable");
+  changeActions.classList.toggle("hidden", mode !== "change");
   unlockActions.classList.toggle("hidden", mode !== "unlock");
 
   if (mode === "setup") {
@@ -171,6 +190,9 @@ function setPasswordMode(mode) {
   } else if (mode === "disable") {
     title.textContent = "Disable Password Lock";
     subtitle.textContent = "Enter the saved password to turn off the startup password lock.";
+  } else if (mode === "change") {
+    title.textContent = "Change Password";
+    subtitle.textContent = "Enter your current password, then choose a new password.";
   } else {
     title.textContent = "Password Lock";
     subtitle.textContent = "Enter your password to continue to Plutus.";
@@ -240,6 +262,45 @@ async function handleDisableSubmit() {
   closePasswordOverlay(true);
 }
 
+async function handleChangeSubmit() {
+  const current = passwordCurrentInput.value.trim();
+  const next = passwordNewInput.value.trim();
+  const confirm = passwordNewConfirmInput.value.trim();
+
+  if (!current || !next || !confirm) {
+    showPasswordError("Please fill in all password fields.");
+    return;
+  }
+
+  if (next !== confirm) {
+    showPasswordError("New passwords do not match.");
+    return;
+  }
+
+  if (next === current) {
+    showPasswordError("New password must be different from current password.");
+    return;
+  }
+
+  if (!window.handler) return;
+  const valid = await window.handler.verify_password(current);
+  if (!valid) {
+    showPasswordError("Incorrect current password.");
+    return;
+  }
+
+  try {
+    await window.handler.set_password(next);
+  } catch (e) {
+    showPasswordError("Could not change password. Please try again.");
+    return;
+  }
+
+  showPasswordSuccess("Password changed successfully.");
+  clearPasswordInputs();
+  setTimeout(focusPasswordField, 0);
+}
+
 async function handleUnlockSubmit() {
   const password = passwordUnlockInput.value.trim();
 
@@ -261,8 +322,11 @@ async function handleUnlockSubmit() {
 passwordBtn?.addEventListener("click", handlePasswordButtonClick);
 setupSubmitBtn?.addEventListener("click", handleSetupSubmit);
 setupCancelBtn?.addEventListener("click", () => closePasswordOverlay());
+changeBtn?.addEventListener("click", () => openPasswordOverlay("change"));
 disableBtn?.addEventListener("click", handleDisableSubmit);
 disableCancelBtn?.addEventListener("click", () => closePasswordOverlay());
+changeSubmitBtn?.addEventListener("click", handleChangeSubmit);
+changeCancelBtn?.addEventListener("click", () => closePasswordOverlay());
 unlockBtn?.addEventListener("click", handleUnlockSubmit);
 
 overlay?.addEventListener("click", (e) => {
@@ -279,6 +343,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && overlay?.classList.contains("open")) {
     if (passwordOverlayMode === "setup") handleSetupSubmit();
     else if (passwordOverlayMode === "disable") handleDisableSubmit();
+    else if (passwordOverlayMode === "change") handleChangeSubmit();
     else if (passwordOverlayMode === "unlock") handleUnlockSubmit();
   }
 });
