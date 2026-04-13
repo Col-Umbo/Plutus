@@ -413,7 +413,18 @@ class CallHandler(QObject):
             except Exception:
                 pass
             return False
-
+    @Slot(str, result=bool)
+    def check_password(self, password):
+        self.con.close()
+        self.con = sqlite.connect("plutus.db")
+        self.cursor = self.con.cursor()
+        self.cursor.execute("PRAGMA key ='"+password+"'")
+        try:
+            self.cursor.execute("SELECT count(*) FROM sqlite_master;")
+            return True
+        except sqlite.error:
+            self._unlock()
+            return False
     @Slot(str, result=bool)
     def verify_password(self, password):
         self.cursor.execute("PRAGMA key ='"+password+"'")

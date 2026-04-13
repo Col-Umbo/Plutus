@@ -247,7 +247,7 @@ async function handleDisableSubmit() {
     return;
   }
 
-  const valid = await window.handler.verify_password(password);
+  const valid = await window.handler.check_password(password);
   if (!valid) {
     showPasswordError("Incorrect password.");
     return;
