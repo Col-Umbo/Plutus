@@ -282,6 +282,46 @@
 
   // Total Spending Card (with pie chart)
   let spendingChart = null;
+  const FALLBACK_TEXT = "rgba(255,255,255,0.92)";
+  const FALLBACK_MUTED = "rgba(255,255,255,0.65)";
+  const FALLBACK_BORDER = "rgba(255,255,255,0.16)";
+
+  function cssVar(name, fallback) {
+    const value = getComputedStyle(document.body).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function applySpendingChartTheme() {
+    if (!spendingChart) return;
+
+    const textColor = cssVar("--text", FALLBACK_TEXT);
+    const mutedColor = cssVar("--muted", FALLBACK_MUTED);
+    const borderColor = cssVar("--border", FALLBACK_BORDER);
+    const tooltipBg = document.body.classList.contains("light")
+      ? "rgba(248, 250, 252, 0.97)"
+      : "rgba(15, 23, 42, 0.94)";
+
+    spendingChart.options.plugins.legend = {
+      ...spendingChart.options.plugins.legend,
+      labels: {
+        ...spendingChart.options.plugins.legend?.labels,
+        color: textColor,
+      },
+    };
+
+    spendingChart.options.plugins.tooltip = {
+      ...spendingChart.options.plugins.tooltip,
+      titleColor: textColor,
+      bodyColor: textColor,
+      footerColor: mutedColor,
+      backgroundColor: tooltipBg,
+      borderColor: borderColor,
+      borderWidth: 1,
+    };
+
+    // Force canvas redraw so center text plugin picks up current CSS variables.
+    spendingChart.update("none");
+  }
 
   const centerTextPlugin = {
     id: "centerTextPlugin",
@@ -433,6 +473,8 @@
         plugins: [centerTextPlugin],
       });
 
+      applySpendingChartTheme();
+
       const totalSpent = data.reduce((sum, n) => sum + n, 0);
 
       list.innerHTML = sorted
@@ -467,6 +509,10 @@
   window.addEventListener("plutus-db-changed", () => {
     renderSummaryPage();
     loadSpendingChart();
+  });
+
+  window.addEventListener("plutus-theme-changed", () => {
+    applySpendingChartTheme();
   });
 
   dockBtn.addEventListener("click", () => {

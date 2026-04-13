@@ -50,8 +50,7 @@ const THEME_KEY = "theme_preference"; // "light" | "dark"
 
 function updateDockIcons() {
   const isLight = document.body.classList.contains("light");
-  document.querySelectorAll(".dockIcon, .tableIcon").forEach((icon) => {
-    const isLight = document.body.classList.contains("light");
+  document.querySelectorAll(".dockIcon, .tableIcon, .lockIcon").forEach((icon) => {
     const newSrc = isLight ? icon.dataset.light : icon.dataset.dark;
     if (newSrc) icon.src = newSrc;
   });
@@ -63,6 +62,7 @@ function applyTheme(theme) {
   // label shows what you'll switch to when clicked
   if (themeLabel) themeLabel.textContent = theme === "light" ? "Dark" : "Light";
   updateDockIcons();
+  window.dispatchEvent(new CustomEvent("plutus-theme-changed", { detail: { theme } }));
 }
 
 function getInitialTheme() {
