@@ -283,7 +283,7 @@ async function handleChangeSubmit() {
   }
 
   if (!window.handler) return;
-  const valid = await window.handler.verify_password(current);
+  const valid = await window.handler.check_password(current);
   if (!valid) {
     showPasswordError("Incorrect current password.");
     return;
@@ -299,6 +299,7 @@ async function handleChangeSubmit() {
   showPasswordSuccess("Password changed successfully.");
   clearPasswordInputs();
   setTimeout(focusPasswordField, 0);
+  closePasswordOverlay(true)
 }
 
 async function handleUnlockSubmit() {

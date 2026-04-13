@@ -365,7 +365,7 @@ class CallHandler(QObject):
             self.con = sqlite.connect("plutus.db")
             self.cursor = self.con.cursor()
             self._unlock()
-            # self.cursor.execute("PRAGMA cipher_use_hmac=off")
+            self.cursor.execute("PRAGMA cipher_use_hmac=off")
             self.password = password
             self.encrypted = True
         else:
@@ -415,6 +415,7 @@ class CallHandler(QObject):
             return False
     @Slot(str, result=bool)
     def check_password(self, password):
+        self._db_watch_timer.stop()
         self.con.close()
         self.con = sqlite.connect("plutus.db")
         self.cursor = self.con.cursor()
@@ -422,8 +423,9 @@ class CallHandler(QObject):
         try:
             self.cursor.execute("SELECT count(*) FROM sqlite_master;")
             return True
-        except sqlite.error:
+        except sqlite.Error:
             self._unlock()
+            self._db_watch_timer.start()
             return False
     @Slot(str, result=bool)
     def verify_password(self, password):
