@@ -50,16 +50,12 @@ body {
 html {
   min-height: 100%;
   background:
-    radial-gradient(
-      1200px 600px at 20% 0%,
+    radial-gradient(1200px 600px at 20% 0%,
       rgba(79, 70, 229, 0.25),
-      transparent 55%
-    ),
-    radial-gradient(
-      900px 500px at 80% 10%,
+      transparent 55%),
+    radial-gradient(900px 500px at 80% 10%,
       rgba(34, 197, 94, 0.18),
-      transparent 60%
-    ),
+      transparent 60%),
     var(--bg);
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -100,21 +96,15 @@ body.light {
   --shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
 
   background:
-    radial-gradient(
-      900px 700px at 10% 10%,
+    radial-gradient(900px 700px at 10% 10%,
       rgba(124, 58, 237, 0.18),
-      transparent 60%
-    ),
-    radial-gradient(
-      900px 700px at 90% 20%,
+      transparent 60%),
+    radial-gradient(900px 700px at 90% 20%,
       rgba(34, 211, 238, 0.12),
-      transparent 55%
-    ),
-    radial-gradient(
-      900px 700px at 70% 95%,
+      transparent 55%),
+    radial-gradient(900px 700px at 70% 95%,
       rgba(52, 211, 153, 0.1),
-      transparent 55%
-    ),
+      transparent 55%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -199,11 +189,9 @@ body.light .backdrop {
 }
 
 body.light .modal {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(245, 246, 250, 0.98)
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(245, 246, 250, 0.98));
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
@@ -250,11 +238,9 @@ body.light .icon-btn {
 body.light .filters {
   border: 1px solid rgba(0, 0, 0, 0.1);
 
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.78),
-    rgba(255, 255, 255, 0.55)
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.78),
+      rgba(255, 255, 255, 0.55));
 
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.12);
 }
@@ -288,11 +274,9 @@ body.light .cat-item {
 /* Light mode contrast tuning */
 body.light .card {
   border: 1px solid rgba(148, 163, 184, 0.35);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.9),
-    rgba(248, 250, 252, 0.92)
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.9),
+      rgba(248, 250, 252, 0.92));
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
@@ -376,11 +360,9 @@ header {
   top: 0;
   z-index: 10;
   backdrop-filter: blur(16px);
-  background: linear-gradient(
-    to bottom,
-    rgba(7, 10, 18, 0.78),
-    rgba(7, 10, 18, 0.38)
-  );
+  background: linear-gradient(to bottom,
+      rgba(7, 10, 18, 0.78),
+      rgba(7, 10, 18, 0.38));
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -527,6 +509,7 @@ header {
 #passwordConfirmInput {
   margin-bottom: 10px;
 }
+
 .passwordMessage {
   margin: 12px 0 0;
   padding: 10px 12px;
@@ -567,11 +550,9 @@ html.light .overlay {
 body.light .palette,
 html.light .palette {
   border: 1px solid rgba(15, 23, 42, 0.12);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(241, 245, 249, 0.98)
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(241, 245, 249, 0.98));
   box-shadow: 0 26px 70px rgba(15, 23, 42, 0.22);
 }
 
@@ -639,11 +620,9 @@ main {
   padding: 16px;
   border-radius: var(--radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.07),
-    rgba(255, 255, 255, 0.03)
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.07),
+      rgba(255, 255, 255, 0.03));
   box-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
   height: auto;
   align-self: stretch;
@@ -868,6 +847,7 @@ input[type="color"] {
   border-radius: 14px;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.16);
+  align-items: center;
 }
 
 .mt {
@@ -906,7 +886,6 @@ input[type="color"] {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: center;
 }
 
 @media (max-width: 760px) {
@@ -1006,6 +985,8 @@ body.light #spendingList li {
 .summary-health-list {
   display: grid;
   gap: 8px;
+  max-height: 170px;
+  overflow-y: auto;
 }
 
 .summary-health-row {
@@ -1024,6 +1005,25 @@ body.light #spendingList li {
 .summary-health-row b {
   color: var(--text);
   font-size: 14px;
+}
+
+/* Top Spending Categories */
+#summaryTopCategories {
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+/* Recent Activity */
+#summaryRecentActivity {
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+.summary-health-list,
+#summaryTopCategories,
+#summaryRecentActivity {
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
 }
 
 .summary-list {
@@ -1084,7 +1084,7 @@ body.light #spendingList li {
   overflow: hidden;
 }
 
-.summary-meter > span {
+.summary-meter>span {
   display: block;
   height: 100%;
   width: 0;
@@ -1137,11 +1137,9 @@ body.light #spendingList li {
 .modal {
   width: min(560px, 100%);
   border-radius: var(--radius);
-  background: linear-gradient(
-    180deg,
-    rgba(25, 28, 46, 0.98),
-    rgba(18, 20, 36, 0.98)
-  );
+  background: linear-gradient(180deg,
+      rgba(25, 28, 46, 0.98),
+      rgba(18, 20, 36, 0.98));
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: var(--shadow);
   padding: 16px;
@@ -1357,11 +1355,9 @@ select:focus {
   border: 1px solid rgba(255, 255, 255, 0.1);
 
   /* glass gradient */
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.07),
-    rgba(255, 255, 255, 0.03)
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.07),
+      rgba(255, 255, 255, 0.03));
 
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
 
@@ -1507,6 +1503,7 @@ body.light .tx-item {
 }
 
 @media (max-width: 760px) {
+
   /* Show it on mobile only where the grid-area layout uses it */
   .tx-item .repeat {
     display: block;
@@ -1624,16 +1621,12 @@ body.light .warn {
 
 body.dark {
   background:
-    radial-gradient(
-      1200px 600px at 20% 0%,
+    radial-gradient(1200px 600px at 20% 0%,
       rgba(79, 70, 229, 0.25),
-      transparent 55%
-    ),
-    radial-gradient(
-      900px 500px at 80% 10%,
+      transparent 55%),
+    radial-gradient(900px 500px at 80% 10%,
       rgba(34, 197, 94, 0.18),
-      transparent 60%
-    ),
+      transparent 60%),
     var(--bg);
 }
 
@@ -1692,13 +1685,13 @@ body.light .budget-bar {
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-.budget-bar > .fill {
+.budget-bar>.fill {
   height: 100%;
   width: 0%;
   background: rgba(34, 197, 94, 0.75);
 }
 
-.budget-row.over .budget-bar > .fill {
+.budget-row.over .budget-bar>.fill {
   background: rgba(251, 113, 133, 0.85);
 }
 
@@ -1825,6 +1818,7 @@ body.light .budget-bar {
 .goals-grid .goals-impact { grid-column: span 5; } */
 
 @media (max-width: 980px) {
+
   .goals-grid .goals-create,
   .goals-grid .goals-summary,
   .goals-grid .goals-list,
@@ -1959,6 +1953,7 @@ body.light .goals-impact-row {
 }
 
 @media (max-width: 860px) {
+
   .goals-head,
   .goals-impact-head {
     display: none !important;
@@ -2041,11 +2036,9 @@ body.light .goals-impact-row {
 }
 
 .dockBtn.active {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 211, 238, 0.1),
-    rgba(124, 58, 237, 0.22)
-  );
+  background: linear-gradient(135deg,
+      rgba(34, 211, 238, 0.1),
+      rgba(124, 58, 237, 0.22));
   border-color: rgba(124, 58, 237, 0.25);
   color: rgba(255, 255, 255, 0.92);
 }
