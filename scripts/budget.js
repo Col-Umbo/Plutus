@@ -301,6 +301,10 @@
         isUnallocated: true,
       });
     }
+
+    if (typeof updateDockIcons === "function") {
+      updateDockIcons();
+    }
   }
 
   async function render() {

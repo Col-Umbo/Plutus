@@ -227,6 +227,10 @@
       li.append(date, name, cat, amt, actions, repeat);
       txListEl.appendChild(li);
     }
+
+    if (typeof updateDockIcons === "function") {
+      updateDockIcons();
+    }
   }
 
   // Events

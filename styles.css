@@ -85,17 +85,19 @@ body {
 
 /* ==================== Light Mode Overrides ==================== */
 body.light {
-  --bg: #f6f7fb;
-  --panel: rgba(0, 0, 0, 0.05);
-  --panel-2: rgba(0, 0, 0, 0.08);
-  --stroke: rgba(0, 0, 0, 0.1);
+  --bg: #eef4ff;
+  --panel: #f8fafc;
+  --panel-2: #ffffff;
+  --stroke: rgba(15, 23, 42, 0.12);
 
-  --text: rgba(0, 0, 0, 0.88);
-  --muted: rgba(0, 0, 0, 0.62);
-  --muted-2: rgba(0, 0, 0, 0.45);
+  --text: #0f172a;
+  --muted: #334155;
+  --muted-2: #475569;
+  --good: #16a34a;
+  --bad: #e11d48;
 
   /* accent colors */
-  --shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
 
   background:
     radial-gradient(
@@ -152,7 +154,7 @@ body.light header {
 }
 
 body.light .logo h1 {
-  color: #22c55e;
+  color: #16a34a;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -281,6 +283,54 @@ body.light .list-head {
 
 body.light .cat-item {
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Light mode contrast tuning */
+body.light .card {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(248, 250, 252, 0.92)
+  );
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+body.light .card h3 {
+  color: var(--text);
+}
+
+body.light .summary-kpi,
+body.light .summary-health-row,
+body.light .summary-item,
+body.light #spendingList li,
+body.light .totals-card,
+body.light .metric {
+  background: #f1f5f9;
+  border-color: rgba(100, 116, 139, 0.34);
+  color: var(--text);
+}
+
+body.light .chartWrap {
+  background: #f1f5f9;
+  border-color: rgba(100, 116, 139, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+body.light .summary-kpi .label,
+body.light .summary-item-meta,
+body.light .summary-item-sub,
+body.light .summary-health-row {
+  color: var(--muted);
+}
+
+body.light .summary-health-row b,
+body.light .summary-item-title {
+  color: var(--text);
+}
+
+body.light .summary-meter {
+  background: rgba(148, 163, 184, 0.3);
 }
 
 .tableIcon {
@@ -875,7 +925,8 @@ input[type="color"] {
 }
 
 body.light #spendingList li {
-  background: rgba(0, 0, 0, 0.04);
+  background: #f1f5f9;
+  border-color: rgba(100, 116, 139, 0.34);
 }
 
 .budget-overview {
@@ -1065,7 +1116,8 @@ body.light #spendingList li {
 }
 
 body.light #spendingList li {
-  background: rgba(0, 0, 0, 0.04);
+  background: #f1f5f9;
+  border-color: rgba(100, 116, 139, 0.34);
 }
 
 /* Modal */
@@ -1380,9 +1432,14 @@ select:focus {
 .list-section {
   padding: 12px;
   border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: var(--shadow);
+}
+
+body.light .list-section {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-color: rgba(100, 116, 139, 0.34);
 }
 
 .list-head {
@@ -1433,6 +1490,11 @@ select:focus {
   background: rgba(0, 0, 0, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
+}
+
+body.light .tx-item {
+  background: #f1f5f9;
+  border-color: rgba(100, 116, 139, 0.34);
 }
 
 .tx-item .muted {
@@ -1528,8 +1590,8 @@ select:focus {
 }
 
 body.light .metric {
-  border-color: rgba(0, 0, 0, 0.1);
-  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(100, 116, 139, 0.34);
+  background: #f1f5f9;
 }
 
 .metric .label {
@@ -1555,9 +1617,9 @@ body.light .metric {
 }
 
 body.light .warn {
-  color: rgba(0, 0, 0, 0.85);
-  border-color: rgba(220, 38, 38, 0.25);
-  background: rgba(220, 38, 38, 0.08);
+  color: #9f1239;
+  border-color: rgba(225, 29, 72, 0.35);
+  background: rgba(225, 29, 72, 0.1);
 }
 
 body.dark {
