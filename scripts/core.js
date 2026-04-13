@@ -231,7 +231,12 @@ async function handleDisableSubmit() {
     return;
   }
 
-  await window.handler.disable_password_lock();
+  const disabled = await window.handler.disable_password_lock();
+  if (!disabled) {
+    showPasswordError("Could not disable password lock. Please try again.");
+    return;
+  }
+
   closePasswordOverlay(true);
 }
 
