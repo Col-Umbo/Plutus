@@ -33,9 +33,9 @@ class CallHandler(QObject):
         self.con = sqlite.connect("plutus.db")
         self.cursor = self.con.cursor()
         # Please note that the database expects all dates to follow the below format. Uncomment and test it if you're unsure what this means.
-        # print(datetime.date.today().strftime('%m-%y'))
+        print(datetime.date.today().strftime('%y-%m-%d'))
         try:
-            self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%m-%y')+'", 0.00)')
+            self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%y-%m')+'", 0.00)')
             self.con.commit()
             self._reload_cache()
             self._last_data_version = self._read_data_version()
@@ -83,7 +83,7 @@ class CallHandler(QObject):
         expenses = self.cursor.fetchall()
         for row in expenses:
             self.expenses.append(classes.Expense(*row))
-        self.cursor.execute('SELECT amount FROM Budgets WHERE date="'+datetime.date.today().strftime('%m-%y')+'"')
+        self.cursor.execute('SELECT amount FROM Budgets WHERE date="'+datetime.date.today().strftime('%y-%m')+'"')
         budget = self.cursor.fetchall()
         for row in budget:
             self.budget = classes.Budget(self.income, self.expenses, *row)
@@ -98,6 +98,15 @@ class CallHandler(QObject):
             )
             for expense in expenses:
                 self.expenseCategories[-1].transactions.append(classes.Expense(*expense))
+                if expense[5] == True and datetime.date.today() >= datetime.datetime.strptime(expense[1], "%y-%m-%d").date() + datetime.timedelta(expense[6]) and datetime.date.today().strftime('%y-%m-%d') <= expense[7]:
+                    self.cursor.execute("UPDATE Expenses SET recurring = 0 WHERE id = ?",(expense[0],))
+                    self.con.commit()
+                    if datetime.date.today().strftime('%d-%m-%y') == expense[7]:
+                        self.log_expense(expense[2],expense[3],expense[4],expense[5],expense[6],expense[7],False)
+                    else:
+                        self.log_expense(expense[2],expense[3],expense[4],False,0,datetime.date.today().strftime('%d-%m-%y'),False)
+                    continue
+
         self.cursor.execute('SELECT * FROM IncomeCategories')
         categoryTable = self.cursor.fetchall()
         for row in categoryTable:
@@ -112,7 +121,7 @@ class CallHandler(QObject):
     
     # time identifier / time keys (more for Budget and Goals pages)    
     def current_month_key(self):
-        return datetime.date.today().strftime('%m-%y')
+        return datetime.date.today().strftime('%y-%m')
 
     def current_timestamp_ms(self):
         return int(datetime.datetime.now().timestamp() * 1000)
@@ -121,7 +130,7 @@ class CallHandler(QObject):
     @Slot(str, float, str, bool, int, str, bool)
     def log_expense(self, name, amount, category, recurring, frequency, endDate, credit):
         self._unlock()
-        today = datetime.date.today().strftime('%d-%m-%y')
+        today = datetime.date.today().strftime('%y-%m-%d')
         self.cursor.execute(
         '''
         INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit)
@@ -136,7 +145,7 @@ class CallHandler(QObject):
 
     @Slot(str, float, str, bool, int, str)
     def log_income(self, name, amount, category, recurring, frequency, endDate):
-        today = datetime.date.today().strftime('%d-%m-%y')
+        today = datetime.date.today().strftime('%y-%m-%d')
         self.cursor.execute(
             '''
             INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)

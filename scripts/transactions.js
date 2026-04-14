@@ -290,8 +290,8 @@
       else if (repeatEvery.value === "monthly") frequency = 30;
       else if (repeatEvery.value === "yearly") frequency = 365;
     }
-
-    const endDate = "";
+    // Allow user to set this or consider removal
+    const endDate = "26-4-15";
     const credit = false;
 
     if (type === "expense") {
