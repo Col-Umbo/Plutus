@@ -36,16 +36,7 @@
     return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
   }
 
-  function formatDate(iso) {
-    if (!iso) return "";
-    const [y, m, d] = iso.split("-").map(Number);
-    const dt = new Date(y, m - 1, d);
-    return dt.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
+
 
   function escapeHtml(str) {
     return String(str ?? "")
@@ -172,7 +163,9 @@
 
       const date = document.createElement("div");
       date.className = "date muted";
-      date.textContent = t.date || "";
+      const split = t.date.split("-",3)
+      const combined = split[1]+"-"+split[2]+"-"+split[0]
+      date.textContent = combined || "";
 
       const name = document.createElement("div");
       name.className = "name";
