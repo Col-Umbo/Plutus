@@ -23,7 +23,7 @@ window.addEventListener("load", () => {
     return;
   }
 
-  const fallback = setTimeout(finishBootAnimation, 1900);
+  const fallback = setTimeout(finishBootAnimation, 1000);
 
   if (!bootLetter) return;
   bootLetter.addEventListener(
@@ -86,10 +86,12 @@ const THEME_KEY = "theme_preference"; // "light" | "dark"
 
 function updateDockIcons() {
   const isLight = document.body.classList.contains("light");
-  document.querySelectorAll(".dockIcon, .tableIcon, .lockIcon").forEach((icon) => {
-    const newSrc = isLight ? icon.dataset.light : icon.dataset.dark;
-    if (newSrc) icon.src = newSrc;
-  });
+  document
+    .querySelectorAll(".dockIcon, .tableIcon, .lockIcon")
+    .forEach((icon) => {
+      const newSrc = isLight ? icon.dataset.light : icon.dataset.dark;
+      if (newSrc) icon.src = newSrc;
+    });
 }
 
 function applyTheme(theme) {
@@ -98,7 +100,9 @@ function applyTheme(theme) {
   // label shows what you'll switch to when clicked
   if (themeLabel) themeLabel.textContent = theme === "light" ? "Dark" : "Light";
   updateDockIcons();
-  window.dispatchEvent(new CustomEvent("plutus-theme-changed", { detail: { theme } }));
+  window.dispatchEvent(
+    new CustomEvent("plutus-theme-changed", { detail: { theme } }),
+  );
 }
 
 function getInitialTheme() {
@@ -138,7 +142,9 @@ const passwordConfirmInput = document.getElementById("passwordConfirmInput");
 const passwordDisableInput = document.getElementById("passwordDisableInput");
 const passwordCurrentInput = document.getElementById("passwordCurrentInput");
 const passwordNewInput = document.getElementById("passwordNewInput");
-const passwordNewConfirmInput = document.getElementById("passwordNewConfirmInput");
+const passwordNewConfirmInput = document.getElementById(
+  "passwordNewConfirmInput",
+);
 const passwordUnlockInput = document.getElementById("passwordUnlockInput");
 
 const setupActions = document.getElementById("passwordSetupActions");
@@ -222,13 +228,16 @@ function setPasswordMode(mode) {
 
   if (mode === "setup") {
     title.textContent = "Set Password Lock";
-    subtitle.textContent = "Create a password to require a lock screen when the application starts.";
+    subtitle.textContent =
+      "Create a password to require a lock screen when the application starts.";
   } else if (mode === "disable") {
     title.textContent = "Disable Password Lock";
-    subtitle.textContent = "Enter the saved password to turn off the startup password lock.";
+    subtitle.textContent =
+      "Enter the saved password to turn off the startup password lock.";
   } else if (mode === "change") {
     title.textContent = "Change Password";
-    subtitle.textContent = "Enter your current password, then choose a new password.";
+    subtitle.textContent =
+      "Enter your current password, then choose a new password.";
   } else {
     title.textContent = "Password Lock";
     subtitle.textContent = "Enter your password to continue to Plutus.";
@@ -335,7 +344,7 @@ async function handleChangeSubmit() {
   showPasswordSuccess("Password changed successfully.");
   clearPasswordInputs();
   setTimeout(focusPasswordField, 0);
-  closePasswordOverlay(true)
+  closePasswordOverlay(true);
 }
 
 async function handleUnlockSubmit() {
