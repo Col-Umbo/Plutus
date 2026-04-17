@@ -100,7 +100,12 @@
     </div>
 </div>
 
-<body>
+<body class="booting">
+    <!-- =============== Boot Splash =============== -->
+    <div id="bootSplash" class="boot-splash" aria-hidden="true">
+        <div class="boot-letter">P</div>
+    </div>
+
     <!-- =============== Backend Connection =============== -->
     <script>
         new QWebChannel(qt.webChannelTransport, function (channel) {

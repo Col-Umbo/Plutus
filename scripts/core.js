@@ -1,6 +1,42 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// ==================== Boot Splash ====================
+const bootSplash = $("#bootSplash");
+const bootLetter = $(".boot-letter", bootSplash || document);
+let bootAnimationDone = false;
+
+function finishBootAnimation() {
+  if (bootAnimationDone) return;
+  bootAnimationDone = true;
+
+  document.body.classList.remove("booting");
+  if (!bootSplash) return;
+
+  bootSplash.classList.add("done");
+  setTimeout(() => bootSplash.remove(), 450);
+}
+
+window.addEventListener("load", () => {
+  if (!bootSplash) {
+    document.body.classList.remove("booting");
+    return;
+  }
+
+  const fallback = setTimeout(finishBootAnimation, 1900);
+
+  if (!bootLetter) return;
+  bootLetter.addEventListener(
+    "animationend",
+    (event) => {
+      if (event.animationName !== "bootLetterDrop") return;
+      clearTimeout(fallback);
+      finishBootAnimation();
+    },
+    { once: true },
+  );
+});
+
 // ==================== Views / Routing (Switch between tabs) ====================
 const views = {
   home: $("#view-home"),
