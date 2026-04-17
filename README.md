@@ -61,6 +61,7 @@ Plutus is a desktop personal finance tracker built with Python (PySide6) and an 
   - `PySide6`
   - `PyInstaller`
   - `sqlcipher3`
+  - `pandas`
   - `sqlite3` (standard library)
 
 Install dependencies:

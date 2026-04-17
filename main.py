@@ -2,6 +2,7 @@ import sys
 import os
 import classes
 import datetime
+import pandas
 from PySide6.QtCore import QUrl
 from PySide6.QtCore import QObject, Slot, QJsonValue, QJsonArray, Signal, QTimer
 from PySide6.QtWidgets import QApplication, QMainWindow
@@ -33,7 +34,7 @@ class CallHandler(QObject):
         self.con = sqlite.connect("plutus.db")
         self.cursor = self.con.cursor()
         # Please note that the database expects all dates to follow the below format. Uncomment and test it if you're unsure what this means.
-        print(datetime.date.today().strftime('%y-%m-%d'))
+        # print(datetime.date.today().strftime('%y-%m-%d'))
         try:
             self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%y-%m')+'", 0.00)')
             self.con.commit()
@@ -250,6 +251,10 @@ class CallHandler(QObject):
         self._reload_cache()
     # End of edit Categories and Transactions
 
+    @Slot (str, int, float, str, bool, int, str, bool)
+    def edit_expense(self, id, name, amount, category, recurring, frequency, endDate, credit):
+        # Flesh this out later
+        self.cursor.execute("UPDATE Expenses SET (name, amount, categoryName, recurring, frequency, endDate, credit) = (?,?,?,?,?,?) WHERE id = ?",(name, amount, category, recurring, frequency, endDate, credit, id))
     @Slot(str, result=str)
     def get_expenses(self, month):
         self._unlock()
@@ -547,6 +552,21 @@ class CallHandler(QObject):
     @Slot(result=bool)
     def has_password(self):
         return self.encrypted
+    @Slot(str)
+    def import_csv(self,path):
+        # Usecols should be a list, then iterated over in a lambda function.
+        df = pandas.read_csv(path, usecols = ['Date','Description','Category','Amount'])
+        df.rename(columns={'Description':'Name'})
+        df['Date'] = pandas.to_datetime(df['Date']).datetime.date.strftime("%y-%m-%d")
+        expenses = df[dataframe['Amount']<0]
+        expenses['Amount'] = expenses['Amount'].apply(lambda x: x*-1)
+        expenses = expenses.assign(Category="Imported Expenses",Recurring=False,Frequency=0,endDate=lambda x: x['Date'],Credit=False)        
+        # Reordering expenses.
+        #expenses = expenses[['Date',...]]
+        income = df[dataframe['Amount']<=0]
+        income['Category'] = 'Imported'
+
+
         
 class MainWindow(QMainWindow):
     def __init__(self):
