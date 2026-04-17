@@ -23,6 +23,10 @@
   const txRepeats = $("#txRepeats");
   const repeatEveryWrap = $("#repeatEveryWrap");
   const repeatEvery = $("#repeatEvery");
+  const modalTitle = $("#modalTitle");
+  const txSubmitBtn = $("#txSubmitBtn");
+
+  let editingTx = null;
 
   const searchInput = $("#searchInput");
   const pills = $$(".pill");
@@ -47,10 +51,10 @@
       .replaceAll("'", "&#039;");
   }
 
-  function populateCategories() {
+  function populateCategories(selectedValue = "") {
     if (!window.handler || !txCategory) return;
 
-    const type = txType.value; // "income" or "expense"
+    const type = txType.value;
     txCategory.innerHTML = "";
 
     const callback = function (json) {
@@ -62,6 +66,10 @@
         opt.value = item.name;
         opt.textContent = item.name;
         txCategory.appendChild(opt);
+      }
+
+      if (selectedValue) {
+        txCategory.value = selectedValue;
       }
     };
 
@@ -94,25 +102,65 @@
     return hay.includes(q.toLowerCase());
   }
 
-  function openModal() {
+  function setTransactionModalMode(mode, tx = null) {
+    editingTx = mode === "edit" ? tx : null;
+
+    if (mode === "edit" && tx) {
+      modalTitle.textContent = "Edit Transaction";
+      txSubmitBtn.textContent = "Save Changes";
+
+      txType.value = tx.type;
+      txType.disabled = true;
+
+      txAmount.value = Number(tx.amount || 0);
+      txDate.value = tx.date || "";
+      txName.value = tx.name || "";
+      txRepeats.checked = Boolean(tx.recurring);
+      repeatEveryWrap.classList.toggle("hidden", !txRepeats.checked);
+
+      const freq = Number(tx.frequency || 0);
+      if (freq === 7) repeatEvery.value = "weekly";
+      else if (freq === 14) repeatEvery.value = "biweekly";
+      else if (freq === 30) repeatEvery.value = "monthly";
+      else if (freq === 365) repeatEvery.value = "yearly";
+      else repeatEvery.value = "monthly";
+
+      populateCategories(tx.category || "");
+    } else {
+      modalTitle.textContent = "Add Transaction";
+      txSubmitBtn.textContent = "Add";
+
+      editingTx = null;
+      txType.disabled = false;
+      txForm.reset();
+      repeatEveryWrap.classList.add("hidden");
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      txDate.value = `${yyyy}-${mm}-${dd}`;
+
+      populateCategories();
+    }
+  }
+
+  function openModal(mode = "add", tx = null) {
+    setTransactionModalMode(mode, tx);
     modalBackdrop.classList.remove("hidden");
     modalBackdrop.setAttribute("aria-hidden", "false");
-
-    // default date = today
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    if (!txDate.value) txDate.value = `${yyyy}-${mm}-${dd}`;
-
     txAmount.focus();
   }
 
   function closeModal() {
     modalBackdrop.classList.add("hidden");
     modalBackdrop.setAttribute("aria-hidden", "true");
+    editingTx = null;
+    txType.disabled = false;
     txForm.reset();
     repeatEveryWrap.classList.add("hidden");
+    modalTitle.textContent = "Add Transaction";
+    txSubmitBtn.textContent = "Add";
     populateCategories();
   }
 
@@ -163,8 +211,8 @@
 
       const date = document.createElement("div");
       date.className = "date muted";
-      const split = t.date.split("-",3)
-      const combined = split[1]+"-"+split[2]+"-"+split[0]
+      const split = t.date.split("-", 3)
+      const combined = split[1] + "-" + split[2] + "-" + split[0]
       date.textContent = combined || "";
 
       const name = document.createElement("div");
@@ -182,9 +230,15 @@
       amt.className = `amount ${t.type}`;
       amt.textContent = money(Math.abs(Number(t.amount || 0)));
 
-      // Delete Button Segment
+      // Edit Button Segment
       const actions = document.createElement("div");
-      actions.className = "actions";
+      actions.className = "row-actions";
+
+      const edit = document.createElement("button");
+      edit.className = "edit-btn";
+      edit.type = "button";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => openModal("edit", t));
 
       const del = document.createElement("button");
       del.className = "delete-btn";
@@ -210,8 +264,8 @@
         setTimeout(loadTransactionsFromBackend, 50);
       });
 
-      actions.appendChild(del);
-      // end of delete button segment
+      actions.append(edit, del);
+      // end of edit button segment
 
       const repeat = document.createElement("div");
       repeat.className = "repeat muted";
@@ -228,8 +282,7 @@
 
   // Events
   openAddModalBtn.addEventListener("click", () => {
-    populateCategories();
-    openModal();
+    openModal("add");
   });
 
   closeModalBtn?.addEventListener("click", closeModal);
@@ -268,8 +321,9 @@
     const type = txType.value;
     const category = txCategory.value;
     const name = txName.value.trim();
+    const date = txDate.value;
 
-    if (!category || !name) {
+    if (!category || !name || !date) {
       alert("Please fill out all required fields.");
       return;
     }
@@ -283,22 +337,58 @@
       else if (repeatEvery.value === "monthly") frequency = 30;
       else if (repeatEvery.value === "yearly") frequency = 365;
     }
-    // Allow user to set this or consider removal
+
     const endDate = "26-4-15";
     const credit = false;
 
-    if (type === "expense") {
-      handler.log_expense(
-        name,
-        amount,
-        category,
-        repeats,
-        frequency,
-        endDate,
-        credit,
-      );
+    if (editingTx) {
+      if (type === "expense") {
+        handler.update_expense(
+          Number(editingTx.id),
+          date,
+          name,
+          amount,
+          category,
+          repeats,
+          frequency,
+          endDate,
+          credit,
+        );
+      } else {
+        handler.update_income(
+          Number(editingTx.id),
+          date,
+          name,
+          amount,
+          category,
+          repeats,
+          frequency,
+          endDate,
+        );
+      }
     } else {
-      handler.log_income(name, amount, category, repeats, frequency, endDate);
+      if (type === "expense") {
+        handler.add_expense_with_date(
+          date,
+          name,
+          amount,
+          category,
+          repeats,
+          frequency,
+          endDate,
+          credit,
+        );
+      } else {
+        handler.add_income_with_date(
+          date,
+          name,
+          amount,
+          category,
+          repeats,
+          frequency,
+          endDate,
+        );
+      }
     }
 
     closeModal();

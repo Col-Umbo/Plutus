@@ -20,6 +20,11 @@
   const catColorEl = $("#catColor");
   const catNameEl = $("#catName");
 
+  const catModalTitle = $("#catModalTitle");
+  const catSubmitBtn = $("#catSubmitBtn");
+
+  let editingCategory = null;
+
   const searchInput = $("#catSearchInput");
   const pills = $$(".cat-pill");
 
@@ -27,7 +32,30 @@
 
   let currentFilter = "all"; // all | income | expense
 
-  function openModal() {
+  function setCategoryModalMode(mode, item = null) {
+    editingCategory = mode === "edit" ? item : null;
+
+    if (mode === "edit" && item) {
+      catModalTitle.textContent = "Edit Category";
+      catSubmitBtn.textContent = "Save Changes";
+
+      catTypeEl.value = item.type;
+      catTypeEl.disabled = true;
+      catColorEl.value = item.color || "#22c55e";
+      catNameEl.value = item.name || "";
+    } else {
+      catModalTitle.textContent = "Add Category";
+      catSubmitBtn.textContent = "Add";
+
+      editingCategory = null;
+      catTypeEl.disabled = false;
+      form.reset();
+      catColorEl.value = "#22c55e";
+    }
+  }
+
+  function openModal(mode = "add", item = null) {
+    setCategoryModalMode(mode, item);
     backdrop.classList.remove("hidden");
     backdrop.setAttribute("aria-hidden", "false");
     catNameEl.focus();
@@ -36,7 +64,12 @@
   function closeModal() {
     backdrop.classList.add("hidden");
     backdrop.setAttribute("aria-hidden", "true");
+    editingCategory = null;
+    catTypeEl.disabled = false;
     form.reset();
+    catColorEl.value = "#22c55e";
+    catModalTitle.textContent = "Add Category";
+    catSubmitBtn.textContent = "Add";
   }
 
   function matchesFilter(item) {
@@ -100,7 +133,13 @@
 
           // Delete Button
           const actions = document.createElement("div");
-          actions.className = "cat-actions";
+          actions.className = "row-actions";
+
+          const edit = document.createElement("button");
+          edit.className = "edit-btn";
+          edit.type = "button";
+          edit.textContent = "Edit";
+          edit.addEventListener("click", () => openModal("edit", item));
 
           const del = document.createElement("button");
           del.className = "delete-btn";
@@ -125,13 +164,12 @@
 
             setTimeout(() => {
               renderCategoriesFromBackend();
-              if (typeof populateCategories === "function")
-                populateCategories();
+              if (typeof populateCategories === "function") populateCategories();
               if (typeof updateDockIcons === "function") updateDockIcons();
             }, 50);
           });
 
-          actions.appendChild(del);
+          actions.append(edit, del);
           // end of delete button segment
 
           li.append(type, name, color, actions);
@@ -144,7 +182,7 @@
   }
 
   // Events
-  openBtn.addEventListener("click", openModal);
+  openBtn.addEventListener("click", () => openModal("add"));
 
   closeBtn?.addEventListener("click", closeModal);
   cancelBtn?.addEventListener("click", closeModal);
@@ -166,7 +204,7 @@
       return;
     }
 
-    const type = catTypeEl.value; // income|expense
+    const type = catTypeEl.value;
     const name = catNameEl.value.trim();
     const color = catColorEl.value;
 
@@ -175,8 +213,16 @@
       return;
     }
 
-    const isIncome = type === "income";
-    handler.add_category(isIncome, name, 0.0, color);
+    if (editingCategory) {
+      if (type === "income") {
+        handler.update_income_category(editingCategory.name, name, color);
+      } else {
+        handler.update_expense_category(editingCategory.name, name, color);
+      }
+    } else {
+      const isIncome = type === "income";
+      handler.add_category(isIncome, name, 0.0, color);
+    }
 
     closeModal();
     setTimeout(() => {

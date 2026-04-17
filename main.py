@@ -157,6 +157,98 @@ class CallHandler(QObject):
         new_id = self.cursor.lastrowid
         income = classes.Income(new_id, today, name, amount, category, recurring, frequency, endDate)
         self.income.append(income)
+        
+    # Edit Categories and Transactions
+    @Slot(str, str, float, str, bool, int, str, bool)
+    def add_expense_with_date(self, date, name, amount, category, recurring, frequency, endDate, credit):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate, credit)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(str, str, float, str, bool, int, str)
+    def add_income_with_date(self, date, name, amount, category, recurring, frequency, endDate):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(int, str, str, float, str, bool, int, str, bool)
+    def update_expense(self, expense_id, date, name, amount, category, recurring, frequency, endDate, credit):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            UPDATE Expenses
+            SET date = ?, name = ?, amount = ?, categoryName = ?, recurring = ?, frequency = ?, endDate = ?, credit = ?
+            WHERE id = ?
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate, credit, expense_id)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(int, str, str, float, str, bool, int, str)
+    def update_income(self, income_id, date, name, amount, category, recurring, frequency, endDate):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            UPDATE Income
+            SET date = ?, name = ?, amount = ?, categoryName = ?, recurring = ?, frequency = ?, endDate = ?
+            WHERE id = ?
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate, income_id)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(str, str, str)
+    def update_expense_category(self, old_name, new_name, color):
+        self._unlock()
+        self.cursor.execute(
+            'UPDATE ExpenseCategories SET name = ?, color = ? WHERE name = ?',
+            (new_name, color, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE Expenses SET categoryName = ? WHERE categoryName = ?',
+            (new_name, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE BudgetAllocations SET category = ? WHERE category = ?',
+            (new_name, old_name)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(str, str, str)
+    def update_income_category(self, old_name, new_name, color):
+        self._unlock()
+        self.cursor.execute(
+            'UPDATE IncomeCategories SET name = ?, color = ? WHERE name = ?',
+            (new_name, color, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE Income SET categoryName = ? WHERE categoryName = ?',
+            (new_name, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE BudgetAllocations SET category = ? WHERE category = ?',
+            (new_name, old_name)
+        )
+        self.con.commit()
+        self._reload_cache()
+    # End of edit Categories and Transactions
 
     @Slot(str, result=str)
     def get_expenses(self, month):
