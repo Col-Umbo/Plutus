@@ -1153,7 +1153,7 @@ body.light #spendingList li {
 
 .budget-overview {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   grid-template-rows: 50px 1fr;
   column-gap: 15px;
 }
@@ -1163,7 +1163,7 @@ body.light #spendingList li {
 }
 
 .home-recent {
-  grid-column: 3/4;
+  grid-column: 2/3;
   grid-row: 2/3;
 }
 
