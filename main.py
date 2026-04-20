@@ -555,15 +555,27 @@ class CallHandler(QObject):
     @Slot(str)
     def import_csv(self,path):
         # Usecols should be a list, then iterated over in a lambda function.
-        df = pandas.read_csv(path, usecols = ['Date','Description','Category','Amount'])
-        df.rename(columns={'Description':'Name'})
-        df['Date'] = pandas.to_datetime(df['Date']).datetime.date.strftime("%y-%m-%d")
-        expenses = df[dataframe['Amount']<0]
-        expenses['Amount'] = expenses['Amount'].apply(lambda x: x*-1)
-        expenses = expenses.assign(Category="Imported Expenses",Recurring=False,Frequency=0,endDate=lambda x: x['Date'],Credit=False)        
+        columns = ['Date','date','Description','Category','categoryName','name','Amount','amount','recurring','frequency','endDate']
+        df = pandas.read_csv(path, usecols = lambda x: x in columns)
+        # Read csv and normalize column names
+        if 'Date' in df.columns:
+            # External banking csv. Rename columns and add missing.
+            df.rename(columns={'Date':'date'})
+            df.rename(columns={'Description':'name'})
+            df.rename(columns={'Category':'categoryName'})
+            df.rename(columns={'Amount':'amount'})
+            df['date'] = pandas.to_datetime(df['date']).datetime.date.strftime("%y-%m-%d")
+            expenses = df[dataframe['amount']<0]
+            expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
+            expenses = expenses.assign(categoryName="Imported Expenses",recurring=False,frequency=0,endDate=lambda x: x['Date'])        
+        else:
+            # Exported transactions. Column names and contents do not need to be modified
+            df['date'] = pandas.to_datetime(df['date']).datetime.date.strftime("%y-%m-%d")
+            expenses = df[dataframe['amount']<0]
+            expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
         # Reordering expenses.
-        #expenses = expenses[['Date',...]]
-        income = df[dataframe['Amount']<=0]
+        expenses = expenses[['date','name','categoryName','amount','recurring','frequency','endDate']]
+        income = df[dataframe['amount']<=0]
         income['Category'] = 'Imported'
 
 
