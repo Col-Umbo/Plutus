@@ -46,24 +46,153 @@ const views = {
   goals: $("#view-goals"),
 };
 
+const viewOrder = ["home", "transactions", "budget", "categories", "goals"];
+const pageRoot = $("#page");
 const dockButtons = $$(".dockBtn");
+const reducedMotion = window.matchMedia?.(
+  "(prefers-reduced-motion: reduce)",
+)?.matches;
+const VIEW_TRANSITION_MS = 700;
+const VIEW_TRANSITION_CLASSES = [
+  "is-transitioning",
+  "transition-in",
+  "transition-out",
+  "from-left",
+  "from-right",
+  "to-left",
+  "to-right",
+];
 
-function setActiveView(key, { push = true } = {}) {
-  if (!views[key]) key = "home";
+let activeViewKey = null;
+let viewTransitionInFlight = false;
+let queuedViewChange = null;
 
-  Object.entries(views).forEach(([k, el]) => {
-    if (!el) return;
-    el.classList.toggle("active", k === key);
+function normalizeViewKey(key) {
+  return views[key] ? key : "home";
+}
+
+function clearViewTransitionClasses(viewEl) {
+  if (!viewEl) return;
+  viewEl.classList.remove(...VIEW_TRANSITION_CLASSES);
+}
+
+function setViewItemStagger(viewEl) {
+  if (!viewEl) return;
+  const motionItems = [$(".contentHeader", viewEl), ...$$(".grid > *", viewEl)];
+  motionItems.forEach((item, index) => {
+    if (!item) return;
+    item.style.setProperty("--view-item-index", String(index));
   });
+}
 
+function updateActiveDockButton(key) {
   dockButtons.forEach((btn) => {
     const isActive = btn.dataset.target === key;
     btn.classList.toggle("active", isActive);
     if (isActive) btn.setAttribute("aria-current", "page");
     else btn.removeAttribute("aria-current");
   });
+}
+
+function setViewImmediately(key) {
+  Object.entries(views).forEach(([k, el]) => {
+    if (!el) return;
+    clearViewTransitionClasses(el);
+    el.classList.toggle("active", k === key);
+  });
+
+  updateActiveDockButton(key);
+  activeViewKey = key;
+  viewTransitionInFlight = false;
+  if (pageRoot) {
+    pageRoot.classList.remove("page-transitioning");
+    pageRoot.style.minHeight = "";
+  }
+}
+
+function getViewDirection(fromKey, toKey) {
+  const fromIndex = viewOrder.indexOf(fromKey);
+  const toIndex = viewOrder.indexOf(toKey);
+  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return null;
+  return toIndex > fromIndex ? "forward" : "backward";
+}
+
+function setActiveView(nextKey, { push = true, animate = true } = {}) {
+  const key = normalizeViewKey(nextKey);
 
   if (push) history.pushState({ key }, "", `#${key}`);
+  updateActiveDockButton(key);
+
+  if (!activeViewKey) {
+    setViewImmediately(key);
+    return;
+  }
+
+  if (key === activeViewKey && !viewTransitionInFlight) {
+    return;
+  }
+
+  if (viewTransitionInFlight) {
+    queuedViewChange = { key, animate };
+    return;
+  }
+
+  const fromEl = views[activeViewKey];
+  const toEl = views[key];
+  const direction = getViewDirection(activeViewKey, key);
+
+  if (!fromEl || !toEl || !animate || reducedMotion || !direction) {
+    setViewImmediately(key);
+    return;
+  }
+
+  viewTransitionInFlight = true;
+  setViewItemStagger(fromEl);
+  setViewItemStagger(toEl);
+
+  const outgoingClass = direction === "forward" ? "to-left" : "to-right";
+  const incomingClass = direction === "forward" ? "from-right" : "from-left";
+
+  toEl.classList.add("active");
+  const maxHeight = Math.max(fromEl.offsetHeight, toEl.offsetHeight);
+
+  if (pageRoot) {
+    pageRoot.classList.add("page-transitioning");
+    pageRoot.style.minHeight = `${maxHeight}px`;
+  }
+
+  clearViewTransitionClasses(fromEl);
+  clearViewTransitionClasses(toEl);
+
+  fromEl.classList.add("is-transitioning", "transition-out", outgoingClass);
+  toEl.classList.add("is-transitioning", "transition-in", incomingClass);
+
+  const finalizeTransition = () => {
+    fromEl.classList.remove("active");
+    clearViewTransitionClasses(fromEl);
+    clearViewTransitionClasses(toEl);
+
+    if (pageRoot) {
+      pageRoot.classList.remove("page-transitioning");
+      pageRoot.style.minHeight = "";
+    }
+
+    activeViewKey = key;
+    viewTransitionInFlight = false;
+
+    const queued = queuedViewChange;
+    if (!queued) {
+      updateActiveDockButton(key);
+      return;
+    }
+
+    queuedViewChange = null;
+    if (queued.key !== activeViewKey) {
+      setActiveView(queued.key, { push: false, animate: queued.animate });
+    }
+  };
+
+  window.setTimeout(finalizeTransition, VIEW_TRANSITION_MS);
 }
 
 dockButtons.forEach((btn) => {
@@ -75,9 +204,9 @@ window.addEventListener("popstate", (e) => {
   setActiveView(key, { push: false });
 });
 
-const initial = (location.hash || "#home").slice(1);
+const initial = normalizeViewKey((location.hash || "#home").slice(1));
 history.replaceState({ key: initial }, "", `#${initial}`);
-setActiveView(initial, { push: false });
+setActiveView(initial, { push: false, animate: false });
 
 // ==================== Theme toggle (Light/Dark) ====================
 const themeToggleBtn = $("#themeToggleBtn");

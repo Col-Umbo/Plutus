@@ -2062,12 +2062,144 @@ body.light .goals-impact-row {
 }
 
 /* ==================== Navbar Tabs ==================== */
+#page {
+  position: relative;
+}
+
+#page.page-transitioning {
+  overflow: hidden;
+}
+
+#page.page-transitioning>.view.active,
+#page.page-transitioning>.view.is-transitioning {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+}
+
+#page.page-transitioning>.view.transition-in {
+  z-index: 2;
+}
+
+#page.page-transitioning>.view.transition-out {
+  z-index: 1;
+  pointer-events: none;
+}
+
 .view {
   display: none;
 }
 
-.view.active {
+.view.active,
+.view.is-transitioning {
   display: block;
+}
+
+.view .contentHeader,
+.view .grid>* {
+  will-change: transform, opacity, filter;
+}
+
+.view.transition-in.from-left .contentHeader,
+.view.transition-in.from-left .grid>* {
+  animation-name: viewItemInFromLeft;
+  animation-duration: calc(360ms + (var(--view-item-index, 0) * 85ms));
+  animation-timing-function: var(--ease);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--view-item-index, 0) * 28ms);
+}
+
+.view.transition-in.from-right .contentHeader,
+.view.transition-in.from-right .grid>* {
+  animation-name: viewItemInFromRight;
+  animation-duration: calc(360ms + (var(--view-item-index, 0) * 85ms));
+  animation-timing-function: var(--ease);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--view-item-index, 0) * 28ms);
+}
+
+.view.transition-out.to-left .contentHeader,
+.view.transition-out.to-left .grid>* {
+  animation-name: viewItemOutToLeft;
+  animation-duration: calc(240ms + (var(--view-item-index, 0) * 65ms));
+  animation-timing-function: var(--ease);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--view-item-index, 0) * 18ms);
+}
+
+.view.transition-out.to-right .contentHeader,
+.view.transition-out.to-right .grid>* {
+  animation-name: viewItemOutToRight;
+  animation-duration: calc(240ms + (var(--view-item-index, 0) * 65ms));
+  animation-timing-function: var(--ease);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--view-item-index, 0) * 18ms);
+}
+
+@keyframes viewItemInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-64px) scale(0.985);
+    filter: blur(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes viewItemInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(64px) scale(0.985);
+    filter: blur(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes viewItemOutToLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-82px) scale(0.98);
+    filter: blur(5px);
+  }
+}
+
+@keyframes viewItemOutToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(82px) scale(0.98);
+    filter: blur(5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .view.transition-in .contentHeader,
+  .view.transition-in .grid>*,
+  .view.transition-out .contentHeader,
+  .view.transition-out .grid>* {
+    animation: none !important;
+  }
 }
 
 /* ==================== Navigation Dock Styles ==================== */
