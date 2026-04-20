@@ -2,6 +2,7 @@ import sys
 import os
 import classes
 import datetime
+import pandas
 from PySide6.QtCore import QUrl
 from PySide6.QtCore import QObject, Slot, QJsonValue, QJsonArray, Signal, QTimer
 from PySide6.QtWidgets import QApplication, QMainWindow
@@ -33,7 +34,7 @@ class CallHandler(QObject):
         self.con = sqlite.connect("plutus.db")
         self.cursor = self.con.cursor()
         # Please note that the database expects all dates to follow the below format. Uncomment and test it if you're unsure what this means.
-        print(datetime.date.today().strftime('%y-%m-%d'))
+        # print(datetime.date.today().strftime('%y-%m-%d'))
         try:
             self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%y-%m')+'", 0.00)')
             self.con.commit()
@@ -157,7 +158,103 @@ class CallHandler(QObject):
         new_id = self.cursor.lastrowid
         income = classes.Income(new_id, today, name, amount, category, recurring, frequency, endDate)
         self.income.append(income)
+        
+    # Edit Categories and Transactions
+    @Slot(str, str, float, str, bool, int, str, bool)
+    def add_expense_with_date(self, date, name, amount, category, recurring, frequency, endDate, credit):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate, credit)
+        )
+        self.con.commit()
+        self._reload_cache()
 
+    @Slot(str, str, float, str, bool, int, str)
+    def add_income_with_date(self, date, name, amount, category, recurring, frequency, endDate):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(int, str, str, float, str, bool, int, str, bool)
+    def update_expense(self, expense_id, date, name, amount, category, recurring, frequency, endDate, credit):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            UPDATE Expenses
+            SET date = ?, name = ?, amount = ?, categoryName = ?, recurring = ?, frequency = ?, endDate = ?, credit = ?
+            WHERE id = ?
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate, credit, expense_id)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(int, str, str, float, str, bool, int, str)
+    def update_income(self, income_id, date, name, amount, category, recurring, frequency, endDate):
+        self._unlock()
+        self.cursor.execute(
+            '''
+            UPDATE Income
+            SET date = ?, name = ?, amount = ?, categoryName = ?, recurring = ?, frequency = ?, endDate = ?
+            WHERE id = ?
+            ''',
+            (date, name, amount, category, recurring, frequency, endDate, income_id)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(str, str, str)
+    def update_expense_category(self, old_name, new_name, color):
+        self._unlock()
+        self.cursor.execute(
+            'UPDATE ExpenseCategories SET name = ?, color = ? WHERE name = ?',
+            (new_name, color, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE Expenses SET categoryName = ? WHERE categoryName = ?',
+            (new_name, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE BudgetAllocations SET category = ? WHERE category = ?',
+            (new_name, old_name)
+        )
+        self.con.commit()
+        self._reload_cache()
+
+    @Slot(str, str, str)
+    def update_income_category(self, old_name, new_name, color):
+        self._unlock()
+        self.cursor.execute(
+            'UPDATE IncomeCategories SET name = ?, color = ? WHERE name = ?',
+            (new_name, color, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE Income SET categoryName = ? WHERE categoryName = ?',
+            (new_name, old_name)
+        )
+        self.cursor.execute(
+            'UPDATE BudgetAllocations SET category = ? WHERE category = ?',
+            (new_name, old_name)
+        )
+        self.con.commit()
+        self._reload_cache()
+    # End of edit Categories and Transactions
+
+    @Slot (str, int, float, str, bool, int, str, bool)
+    def edit_expense(self, id, name, amount, category, recurring, frequency, endDate, credit):
+        # Flesh this out later
+        self.cursor.execute("UPDATE Expenses SET (name, amount, categoryName, recurring, frequency, endDate, credit) = (?,?,?,?,?,?) WHERE id = ?",(name, amount, category, recurring, frequency, endDate, credit, id))
     @Slot(str, result=str)
     def get_expenses(self, month):
         self._unlock()
@@ -455,6 +552,21 @@ class CallHandler(QObject):
     @Slot(result=bool)
     def has_password(self):
         return self.encrypted
+    @Slot(str)
+    def import_csv(self,path):
+        # Usecols should be a list, then iterated over in a lambda function.
+        df = pandas.read_csv(path, usecols = ['Date','Description','Category','Amount'])
+        df.rename(columns={'Description':'Name'})
+        df['Date'] = pandas.to_datetime(df['Date']).datetime.date.strftime("%y-%m-%d")
+        expenses = df[dataframe['Amount']<0]
+        expenses['Amount'] = expenses['Amount'].apply(lambda x: x*-1)
+        expenses = expenses.assign(Category="Imported Expenses",Recurring=False,Frequency=0,endDate=lambda x: x['Date'],Credit=False)        
+        # Reordering expenses.
+        #expenses = expenses[['Date',...]]
+        income = df[dataframe['Amount']<=0]
+        income['Category'] = 'Imported'
+
+
         
 class MainWindow(QMainWindow):
     def __init__(self):

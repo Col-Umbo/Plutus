@@ -272,6 +272,50 @@
                         </div>
                     </section>
 
+                    <!-- Import and Export Financial Data Section -->
+                    <section class="card home-save-tools">
+                        <div class="cardTop">
+                            <h2>Save and Import Financial Data</h2>
+                        </div>
+
+                        <p>Export your Transactions and Categories data, or import a previously saved Plutus save file.</p>
+
+                        <div class="save-tools-actions">
+                            <button id="exportSaveBtn" class="btn primary" type="button">Export</button>
+                            <button id="openImportModalBtn" class="btn secondary" type="button">Import</button>
+                        </div>
+
+                        <p id="saveToolsMessage" class="save-tools-message hidden" aria-live="polite"></p>
+                    </section>
+                    <div id="importSaveBackdrop" class="backdrop hidden" aria-hidden="true">
+                        <div class="modal save-modal" role="dialog" aria-modal="true" aria-labelledby="importSaveTitle">
+                            <div class="modal-head">
+                                <h2 id="importSaveTitle">Import Save File</h2>
+                                <button id="closeImportModal" class="icon-btn" aria-label="Close">X</button>
+                            </div>
+
+                            <div class="form">
+                                <p class="muted">Choose a CSV save file from your computer, or drag and drop it into the area below.</p>
+
+                                <input id="importSaveInput" type="file" accept=".csv,application/csv" class="hidden" />
+
+                                <div id="importDropZone" class="import-drop-zone" tabindex="0" role="button" aria-label="Browse local save file or drag and drop a save file here">
+                                    <div class="import-drop-zone-title">Drop save file here</div>
+                                    <div class="import-drop-zone-subtitle">or click browse to choose a file from File Explorer (or Finder)</div>
+                                </div>
+
+                                <div id="selectedImportFile" class="selected-import-file hidden"></div>
+                                <p id="importSaveMessage" class="save-tools-message hidden" aria-live="polite"></p>
+
+                                <div class="modal-actions import-modal-actions">
+                                    <button id="browseImportBtn" type="button" class="btn secondary">Browse</button>
+                                    <button id="confirmImportBtn" type="button" class="btn primary">Import</button>
+                                    <button id="cancelImportBtn" type="button" class="btn secondary">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </article>
 
@@ -325,7 +369,7 @@
                             <span class="col name">Name</span>
                             <span class="col category">Category</span>
                             <span class="col amt">Amount</span>
-                            <span class="col act">Delete</span>
+                            <span class="col act">Actions</span>
                         </div>
 
                         <ul id="txList" class="tx-list" aria-label="Transaction list"></ul>
@@ -397,7 +441,7 @@
 
                                 <div class="modal-actions">
                                     <button type="button" id="cancelBtn" class="btn secondary">Cancel</button>
-                                    <button type="submit" class="btn primary">Add</button>
+                                    <button type="submit" id="txSubmitBtn" class="btn primary">Add</button>
                                 </div>
                             </form>
                         </div>
@@ -582,7 +626,7 @@
                             <span class="col type">Type</span>
                             <span class="col name">Name</span>
                             <span class="col color">Color</span>
-                            <span class="col act">Delete</span>
+                            <span class="col act">Actions</span>
                         </div>
 
                         <ul id="catList" class="cat-list" aria-label="Category list"></ul>
@@ -624,7 +668,7 @@
 
                                 <div class="modal-actions">
                                     <button type="button" id="catCancelBtn" class="btn secondary">Cancel</button>
-                                    <button type="submit" class="btn primary">Add</button>
+                                    <button type="submit" id="catSubmitBtn" class="btn primary">Add</button>
                                 </div>
                             </form>
                         </div>
