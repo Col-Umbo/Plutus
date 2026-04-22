@@ -224,11 +224,15 @@
     }
 
     function makeRow({ name, limit, spent, isUnallocated }) {
-      const remaining = limit - spent;
-      const pct =
-        totalBudget > 0
-          ? Math.min(100, (limit / totalBudget) * 100)
+      let pct = 0;
+      if (isUnallocated) {
+        pct = 0;
+      } else {
+        pct = totalBudget > 0
+          ? Math.max(0, (spent / limit) * 100)
           : 0;
+      }
+      const remaining = limit - spent;
       const over = spent > limit && limit > 0;
 
       const li = document.createElement("li");
