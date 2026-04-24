@@ -140,11 +140,12 @@ class CallHandler(QObject):
     )
         self.con.commit()
         new_id = self.cursor.lastrowid
-        expense = classes.Expense(new_id, today, name, amount, category, recurring, frequency, endDate)
+        expense = classes.Expense(new_id, date, name, amount, category, recurring, frequency, endDate)
         self.expenses.append(expense)
 
     @Slot(str, str, float, str, bool, int, str)
     def log_income(self, date, name, amount, category, recurring, frequency, endDate):
+        self._unlock()
         self.cursor.execute(
             '''
             INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)
@@ -154,35 +155,9 @@ class CallHandler(QObject):
         )
         self.con.commit()
         new_id = self.cursor.lastrowid
-        income = classes.Income(new_id, today, name, amount, category, recurring, frequency, endDate)
+        income = classes.Income(new_id, date, name, amount, category, recurring, frequency, endDate)
         self.income.append(income)
         
-    # Edit Categories and Transactions
-    @Slot(str, str, float, str, bool, int, str)
-    def add_expense_with_date(self, date, name, amount, category, recurring, frequency, endDate):
-        self._unlock()
-        self.cursor.execute(
-            '''
-            INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''',
-            (date, name, amount, category, recurring, frequency, endDate)
-        )
-        self.con.commit()
-        self._reload_cache()
-
-    @Slot(str, str, float, str, bool, int, str)
-    def add_income_with_date(self, date, name, amount, category, recurring, frequency, endDate):
-        self._unlock()
-        self.cursor.execute(
-            '''
-            INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''',
-            (date, name, amount, category, recurring, frequency, endDate)
-        )
-        self.con.commit()
-        self._reload_cache()
 
     @Slot(int, str, str, float, str, bool, int, str)
     def update_expense(self, expense_id, date, name, amount, category, recurring, frequency, endDate):
