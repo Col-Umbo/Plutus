@@ -34,9 +34,9 @@ class CallHandler(QObject):
         self.con = sqlite.connect("plutus.db")
         self.cursor = self.con.cursor()
         # Please note that the database expects all dates to follow the below format. Uncomment and test it if you're unsure what this means.
-        # print(datetime.date.today().strftime('%y-%m-%d'))
+        # print(datetime.date.today().strftime('%Y-%m-%d'))
         try:
-            self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%y-%m')+'", 0.00)')
+            self.cursor.execute('INSERT OR IGNORE INTO Budgets (date, amount) VALUES ("'+datetime.date.today().strftime('%Y-%m')+'", 0.00)')
             self.con.commit()
             self._reload_cache()
             self._last_data_version = self._read_data_version()
@@ -84,7 +84,7 @@ class CallHandler(QObject):
         expenses = self.cursor.fetchall()
         for row in expenses:
             self.expenses.append(classes.Expense(*row))
-        self.cursor.execute('SELECT amount FROM Budgets WHERE date="'+datetime.date.today().strftime('%y-%m')+'"')
+        self.cursor.execute('SELECT amount FROM Budgets WHERE date="'+datetime.date.today().strftime('%Y-%m')+'"')
         budget = self.cursor.fetchall()
         for row in budget:
             self.budget = classes.Budget(self.income, self.expenses, *row)
@@ -99,13 +99,13 @@ class CallHandler(QObject):
             )
             for expense in expenses:
                 self.expenseCategories[-1].transactions.append(classes.Expense(*expense))
-                if expense[5] == True and datetime.date.today() >= datetime.datetime.strptime(expense[1], "%y-%m-%d").date() + datetime.timedelta(expense[6]) and datetime.date.today().strftime('%y-%m-%d') <= expense[7]:
+                if expense[5] == True and datetime.date.today() >= datetime.datetime.strptime(expense[1], "%Y-%m-%d").date() + datetime.timedelta(expense[6]) and datetime.date.today().strftime('%Y-%m-%d') <= expense[7]:
                     self.cursor.execute("UPDATE Expenses SET recurring = 0 WHERE id = ?",(expense[0],))
                     self.con.commit()
-                    if datetime.date.today().strftime('%d-%m-%y') == expense[7]:
+                    if datetime.date.today().strftime('%d-%m-%Y') == expense[7]:
                         self.log_expense(expense[2],expense[3],expense[4],expense[5],expense[6],expense[7],False)
                     else:
-                        self.log_expense(expense[2],expense[3],expense[4],False,0,datetime.date.today().strftime('%d-%m-%y'),False)
+                        self.log_expense(expense[2],expense[3],expense[4],False,0,datetime.date.today().strftime('%d-%m-%Y'),False)
                     continue
 
         self.cursor.execute('SELECT * FROM IncomeCategories')
@@ -122,31 +122,31 @@ class CallHandler(QObject):
     
     # time identifier / time keys (more for Budget and Goals pages)    
     def current_month_key(self):
-        return datetime.date.today().strftime('%y-%m')
+        return datetime.date.today().strftime('%Y-%m')
 
     def current_timestamp_ms(self):
         return int(datetime.datetime.now().timestamp() * 1000)
 
     # take an argument from javascript. These only work with @Slot defining the accepted and returned parameter types
     @Slot(str, float, str, bool, int, str, bool)
-    def log_expense(self, name, amount, category, recurring, frequency, endDate, credit):
+    def log_expense(self, name, amount, category, recurring, frequency, endDate):
         self._unlock()
-        today = datetime.date.today().strftime('%y-%m-%d')
+        today = datetime.date.today().strftime('%Y-%m-%d')
         self.cursor.execute(
         '''
-        INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit)
+        INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''',
-        (today, name, amount, category, recurring, frequency, endDate, credit)
+        (today, name, amount, category, recurring, frequency, endDate)
     )
         self.con.commit()
         new_id = self.cursor.lastrowid
-        expense = classes.Expense(new_id, today, name, amount, category, recurring, frequency, endDate, credit)
+        expense = classes.Expense(new_id, today, name, amount, category, recurring, frequency, endDate)
         self.expenses.append(expense)
 
     @Slot(str, float, str, bool, int, str)
     def log_income(self, name, amount, category, recurring, frequency, endDate):
-        today = datetime.date.today().strftime('%y-%m-%d')
+        today = datetime.date.today().strftime('%Y-%m-%d')
         self.cursor.execute(
             '''
             INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)
@@ -161,14 +161,14 @@ class CallHandler(QObject):
         
     # Edit Categories and Transactions
     @Slot(str, str, float, str, bool, int, str, bool)
-    def add_expense_with_date(self, date, name, amount, category, recurring, frequency, endDate, credit):
+    def add_expense_with_date(self, date, name, amount, category, recurring, frequency, endDate):
         self._unlock()
         self.cursor.execute(
             '''
-            INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate, credit)
+            INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''',
-            (date, name, amount, category, recurring, frequency, endDate, credit)
+            (date, name, amount, category, recurring, frequency, endDate)
         )
         self.con.commit()
         self._reload_cache()
@@ -187,15 +187,15 @@ class CallHandler(QObject):
         self._reload_cache()
 
     @Slot(int, str, str, float, str, bool, int, str, bool)
-    def update_expense(self, expense_id, date, name, amount, category, recurring, frequency, endDate, credit):
+    def update_expense(self, expense_id, date, name, amount, category, recurring, frequency, endDate):
         self._unlock()
         self.cursor.execute(
             '''
             UPDATE Expenses
-            SET date = ?, name = ?, amount = ?, categoryName = ?, recurring = ?, frequency = ?, endDate = ?, credit = ?
+            SET date = ?, name = ?, amount = ?, categoryName = ?, recurring = ?, frequency = ?, endDate = ?
             WHERE id = ?
             ''',
-            (date, name, amount, category, recurring, frequency, endDate, credit, expense_id)
+            (date, name, amount, category, recurring, frequency, endDate, expense_id)
         )
         self.con.commit()
         self._reload_cache()
@@ -252,9 +252,9 @@ class CallHandler(QObject):
     # End of edit Categories and Transactions
 
     @Slot (str, int, float, str, bool, int, str, bool)
-    def edit_expense(self, id, name, amount, category, recurring, frequency, endDate, credit):
+    def edit_expense(self, id, name, amount, category, recurring, frequency, endDate):
         # Flesh this out later
-        self.cursor.execute("UPDATE Expenses SET (name, amount, categoryName, recurring, frequency, endDate, credit) = (?,?,?,?,?,?) WHERE id = ?",(name, amount, category, recurring, frequency, endDate, credit, id))
+        self.cursor.execute("UPDATE Expenses SET (name, amount, categoryName, recurring, frequency, endDate) = (?,?,?,?,?,?) WHERE id = ?",(name, amount, category, recurring, frequency, endDate, id))
     @Slot(str, result=str)
     def get_expenses(self, month):
         self._unlock()
@@ -552,7 +552,7 @@ class CallHandler(QObject):
     @Slot(result=bool)
     def has_password(self):
         return self.encrypted
-    @Slot(str)
+    @Slot(str,result=bool)
     def import_csv(self,path):
         # Usecols should be a list, then iterated over in a lambda function.
         columns = ['Date','date','Description','Category','categoryName','name','Amount','amount','recurring','frequency','endDate']
@@ -560,23 +560,36 @@ class CallHandler(QObject):
         # Read csv and normalize column names
         if 'Date' in df.columns:
             # External banking csv. Rename columns and add missing.
-            df.rename(columns={'Date':'date'})
-            df.rename(columns={'Description':'name'})
-            df.rename(columns={'Category':'categoryName'})
-            df.rename(columns={'Amount':'amount'})
-            df['date'] = pandas.to_datetime(df['date']).datetime.date.strftime("%y-%m-%d")
-            expenses = df[dataframe['amount']<0]
+            df = df.rename(columns={'Date':'date','Description':'name','Category':'categoryName','Amount':'amount'})
+            df['date'] = pandas.to_datetime(df['date']).dt.strftime("%Y-%m-%d")
+            df['amount'] = df['amount'].replace(r'[^.0-9\-]', '', regex=True).astype(float)
+            expenses = df[df['amount']<0]
+            income = df[df['amount']>=0]
             expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
-            expenses = expenses.assign(categoryName="Imported Expenses",recurring=False,frequency=0,endDate=lambda x: x['Date'])        
+            expenses = expenses.assign(categoryName="Imported Expenses",recurring=False,frequency=0,endDate=lambda x: x['date'])        
+            income = income.assign(categoryName="Imported Income",recurring=False,frequency=0,endDate=lambda x: x['date'])        
         else:
             # Exported transactions. Column names and contents do not need to be modified
-            df['date'] = pandas.to_datetime(df['date']).datetime.date.strftime("%y-%m-%d")
+            df['date'] = pandas.to_datetime(df['date']).dt.strftime("%Y-%m-%d")
+            df['amount'] = df['amount'].replace(r'[^.0-9\-]', '', regex=True).astype(float)
             expenses = df[dataframe['amount']<0]
             expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
-        # Reordering expenses.
+            income = df[dataframe['amount']>=0]
+        # Reordering expenses and income
         expenses = expenses[['date','name','categoryName','amount','recurring','frequency','endDate']]
-        income = df[dataframe['amount']<=0]
-        income['Category'] = 'Imported'
+        income = income[['date','name','categoryName','amount','recurring','frequency','endDate']]
+        try:
+            expenses.to_sql("Expenses", self.con, schema=None, if_exists='append', index=False, index_label=None, chunksize=None, dtype=None, method=None)
+            income.to_sql("Income", self.con, schema=None, if_exists='append', index=False, index_label=None, chunksize=None, dtype=None, method=None)
+            return True
+        except sqlite.Error as e:
+            return False
+
+    @Slot(str,result=bool)
+    def export_csv(self,path):
+        db = pd.read_sql("SELECT * FROM Expenses UNION ALL SELECT * FROM Income", self.con)
+        db.to_csv(path, index=False)
+
 
 
         
@@ -612,7 +625,7 @@ if __name__ == '__main__':
         cursor.execute('CREATE TABLE IF NOT EXISTS ExpenseCategories (name TEXT PRIMARY KEY, amount FLOAT, color TEXT)')
         cursor.execute('CREATE TABLE IF NOT EXISTS IncomeCategories (name TEXT PRIMARY KEY, amount FLOAT, color TEXT)')
         cursor.execute('CREATE TABLE IF NOT EXISTS Income (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, FOREIGN KEY (categoryNAME) REFERENCES IncomeCategories(name))')
-        cursor.execute('CREATE TABLE IF NOT EXISTS Expenses (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, credit BOOL, FOREIGN KEY (categoryName) REFERENCES ExpenseCategories(name))')
+        cursor.execute('CREATE TABLE IF NOT EXISTS Expenses (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, FOREIGN KEY (categoryName) REFERENCES ExpenseCategories(name))')
         # cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY, name TEXT, totalBalance FLOAT, remBalance FLOAT, monthlyAmount FLOAT, paidOff BOOL)')
         
         # I (Ethan) added this

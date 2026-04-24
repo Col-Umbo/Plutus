@@ -339,7 +339,6 @@
     }
 
     const endDate = "26-4-15";
-    const credit = false;
 
     if (editingTx) {
       if (type === "expense") {
@@ -352,7 +351,6 @@
           repeats,
           frequency,
           endDate,
-          credit,
         );
       } else {
         handler.update_income(
@@ -376,7 +374,6 @@
           repeats,
           frequency,
           endDate,
-          credit,
         );
       } else {
         handler.add_income_with_date(
