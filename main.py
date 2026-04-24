@@ -602,7 +602,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         # Create a QWebEngineView widget
         self.browser = QWebEngineView()
-        self.browser.settings().setAttribute(QWebEngineSettings.WebAttribute.ShowScrollBars,False)
+        # Keep native scrollbars visible so overflow containers can show scroll progress.
+        self.browser.settings().setAttribute(QWebEngineSettings.WebAttribute.ShowScrollBars,True)
         self.browser.channel = QWebChannel()
         self.browser.handler = CallHandler()
         self.browser.channel.registerObject('handler', self.browser.handler)

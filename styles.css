@@ -19,6 +19,10 @@
   --c: #34d399;
   /* green */
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --scrollbar-track: rgba(148, 163, 184, 0.16);
+  --scrollbar-thumb: rgba(100, 116, 139, 0.9);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.98);
+  --scrollbar-thumb-border: rgba(255, 255, 255, 0.16);
 
   --radius-xl: 22px;
   --radius-lg: 16px;
@@ -184,6 +188,10 @@ body.light {
   --muted-2: #475569;
   --good: #16a34a;
   --bad: #e11d48;
+  --scrollbar-track: rgba(148, 163, 184, 0.24);
+  --scrollbar-thumb: rgba(71, 85, 105, 0.78);
+  --scrollbar-thumb-hover: rgba(51, 65, 85, 0.9);
+  --scrollbar-thumb-border: rgba(15, 23, 42, 0.2);
 
   /* accent colors */
   --shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
@@ -1302,7 +1310,68 @@ body.light #spendingList li {
 #summaryTopCategories,
 #summaryRecentActivity {
   scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   scroll-behavior: smooth;
+}
+
+/* Slim visible scrollbar for scrollable panels */
+.tx-list,
+#spendingList,
+.summary-health-list,
+#summaryTopCategories,
+#summaryRecentActivity,
+#budgetList,
+#goalsScenarioList,
+#goalsImpactList {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.tx-list::-webkit-scrollbar,
+#spendingList::-webkit-scrollbar,
+.summary-health-list::-webkit-scrollbar,
+#summaryTopCategories::-webkit-scrollbar,
+#summaryRecentActivity::-webkit-scrollbar,
+#budgetList::-webkit-scrollbar,
+#goalsScenarioList::-webkit-scrollbar,
+#goalsImpactList::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tx-list::-webkit-scrollbar-track,
+#spendingList::-webkit-scrollbar-track,
+.summary-health-list::-webkit-scrollbar-track,
+#summaryTopCategories::-webkit-scrollbar-track,
+#summaryRecentActivity::-webkit-scrollbar-track,
+#budgetList::-webkit-scrollbar-track,
+#goalsScenarioList::-webkit-scrollbar-track,
+#goalsImpactList::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+
+.tx-list::-webkit-scrollbar-thumb,
+#spendingList::-webkit-scrollbar-thumb,
+.summary-health-list::-webkit-scrollbar-thumb,
+#summaryTopCategories::-webkit-scrollbar-thumb,
+#summaryRecentActivity::-webkit-scrollbar-thumb,
+#budgetList::-webkit-scrollbar-thumb,
+#goalsScenarioList::-webkit-scrollbar-thumb,
+#goalsImpactList::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 1px solid var(--scrollbar-thumb-border);
+}
+
+.tx-list::-webkit-scrollbar-thumb:hover,
+#spendingList::-webkit-scrollbar-thumb:hover,
+.summary-health-list::-webkit-scrollbar-thumb:hover,
+#summaryTopCategories::-webkit-scrollbar-thumb:hover,
+#summaryRecentActivity::-webkit-scrollbar-thumb:hover,
+#budgetList::-webkit-scrollbar-thumb:hover,
+#goalsScenarioList::-webkit-scrollbar-thumb:hover,
+#goalsImpactList::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 .summary-list {
@@ -1768,6 +1837,9 @@ body.light .list-section {
   padding: 6px 0 0;
   display: grid;
   gap: 8px;
+
+  max-height: 500px;
+  overflow-y: auto;
 }
 
 body.light .tx-item {
