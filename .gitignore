@@ -5,3 +5,4 @@ main.spec
 __pycache__/**
 plutus.db
 plutus.db-journal
+tests/__pycache__/**
