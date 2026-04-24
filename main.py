@@ -160,7 +160,6 @@ class CallHandler(QObject):
     # Edit Categories and Transactions
     @Slot(str, str, float, str, bool, int, str)
     def add_expense_with_date(self, date, name, amount, category, recurring, frequency, endDate):
-        print("Method called")
         self._unlock()
         self.cursor.execute(
             '''
@@ -169,7 +168,6 @@ class CallHandler(QObject):
             ''',
             (date, name, amount, category, recurring, frequency, endDate)
         )
-        print("sql executed")
         self.con.commit()
         self._reload_cache()
 
