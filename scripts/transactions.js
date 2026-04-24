@@ -338,7 +338,7 @@
       else if (repeatEvery.value === "yearly") frequency = 365;
     }
 
-    const endDate = "26-4-15";
+    const endDate = "";
 
     if (editingTx) {
       if (type === "expense") {
@@ -366,7 +366,7 @@
       }
     } else {
       if (type === "expense") {
-        handler.add_expense_with_date(
+        handler.log_expense(
           date,
           name,
           amount,
@@ -376,7 +376,7 @@
           endDate,
         );
       } else {
-        handler.add_income_with_date(
+        handler.log_income(
           date,
           name,
           amount,
