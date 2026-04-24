@@ -128,31 +128,29 @@ class CallHandler(QObject):
         return int(datetime.datetime.now().timestamp() * 1000)
 
     # take an argument from javascript. These only work with @Slot defining the accepted and returned parameter types
-    @Slot(str, float, str, bool, int, str, bool)
-    def log_expense(self, name, amount, category, recurring, frequency, endDate):
+    @Slot(str, str, float, str, bool, int, str)
+    def log_expense(self, date, name, amount, category, recurring, frequency, endDate):
         self._unlock()
-        today = datetime.date.today().strftime('%Y-%m-%d')
         self.cursor.execute(
         '''
         INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ''',
-        (today, name, amount, category, recurring, frequency, endDate)
+        (date, name, amount, category, recurring, frequency, endDate)
     )
         self.con.commit()
         new_id = self.cursor.lastrowid
         expense = classes.Expense(new_id, today, name, amount, category, recurring, frequency, endDate)
         self.expenses.append(expense)
 
-    @Slot(str, float, str, bool, int, str)
-    def log_income(self, name, amount, category, recurring, frequency, endDate):
-        today = datetime.date.today().strftime('%Y-%m-%d')
+    @Slot(str, str, float, str, bool, int, str)
+    def log_income(self, date, name, amount, category, recurring, frequency, endDate):
         self.cursor.execute(
             '''
             INSERT INTO Income (date, name, amount, categoryName, recurring, frequency, endDate)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ''',
-            (today, name, amount, category, recurring, frequency, endDate)
+            (date, name, amount, category, recurring, frequency, endDate)
         )
         self.con.commit()
         new_id = self.cursor.lastrowid
@@ -160,16 +158,18 @@ class CallHandler(QObject):
         self.income.append(income)
         
     # Edit Categories and Transactions
-    @Slot(str, str, float, str, bool, int, str, bool)
+    @Slot(str, str, float, str, bool, int, str)
     def add_expense_with_date(self, date, name, amount, category, recurring, frequency, endDate):
+        print("Method called")
         self._unlock()
         self.cursor.execute(
             '''
             INSERT INTO Expenses (date, name, amount, categoryName, recurring, frequency, endDate)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ''',
             (date, name, amount, category, recurring, frequency, endDate)
         )
+        print("sql executed")
         self.con.commit()
         self._reload_cache()
 
@@ -186,7 +186,7 @@ class CallHandler(QObject):
         self.con.commit()
         self._reload_cache()
 
-    @Slot(int, str, str, float, str, bool, int, str, bool)
+    @Slot(int, str, str, float, str, bool, int, str)
     def update_expense(self, expense_id, date, name, amount, category, recurring, frequency, endDate):
         self._unlock()
         self.cursor.execute(
@@ -251,7 +251,7 @@ class CallHandler(QObject):
         self._reload_cache()
     # End of edit Categories and Transactions
 
-    @Slot (str, int, float, str, bool, int, str, bool)
+    @Slot (str, int, float, str, bool, int, str)
     def edit_expense(self, id, name, amount, category, recurring, frequency, endDate):
         # Flesh this out later
         self.cursor.execute("UPDATE Expenses SET (name, amount, categoryName, recurring, frequency, endDate) = (?,?,?,?,?,?) WHERE id = ?",(name, amount, category, recurring, frequency, endDate, id))
