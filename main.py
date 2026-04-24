@@ -223,11 +223,6 @@ class CallHandler(QObject):
         self.con.commit()
         self._reload_cache()
     # End of edit Categories and Transactions
-
-    @Slot (str, int, float, str, bool, int, str)
-    def edit_expense(self, id, name, amount, category, recurring, frequency, endDate):
-        # Flesh this out later
-        self.cursor.execute("UPDATE Expenses SET (name, amount, categoryName, recurring, frequency, endDate) = (?,?,?,?,?,?) WHERE id = ?",(name, amount, category, recurring, frequency, endDate, id))
     @Slot(str, result=str)
     def get_expenses(self, month):
         self._unlock()
@@ -336,7 +331,7 @@ class CallHandler(QObject):
             "amount": amount
         })
     @Slot(str, float)
-    def upsert_budget_allocation(self, category, limitAmount):
+    def update_budget_allocation(self, category, limitAmount):
         self._unlock()
         month = self.current_month_key()
         self.cursor.execute(

@@ -428,7 +428,7 @@
     }
 
     if (!window.handler) return;
-    window.handler.upsert_budget_allocation(category, limit);
+    window.handler.update_budget_allocation(category, limit);
 
     allocForm.reset();
     setTimeout(render, 50);
