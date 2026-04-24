@@ -40,8 +40,6 @@
     return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
   }
 
-
-
   function escapeHtml(str) {
     return String(str ?? "")
       .replaceAll("&", "&amp;")
@@ -211,8 +209,8 @@
 
       const date = document.createElement("div");
       date.className = "date muted";
-      const split = t.date.split("-", 3)
-      const combined = split[1] + "-" + split[2] + "-" + split[0]
+      const split = t.date.split("-", 3);
+      const combined = split[1] + "-" + split[2] + "-" + split[0];
       date.textContent = combined || "";
 
       const name = document.createElement("div");

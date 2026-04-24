@@ -17,6 +17,22 @@
   const recentListEl = $("#summaryRecentActivity");
   const recentEmptyEl = $("#summaryRecentEmpty");
   const dockBtn = document.getElementById("home");
+  const exportSaveBtn = $("#exportSaveBtn");
+  const openImportModalBtn = $("#openImportModalBtn");
+  const saveToolsMessageEl = $("#saveToolsMessage");
+
+  const importSaveBackdrop = $("#importSaveBackdrop");
+  const closeImportModalBtn = $("#closeImportModal");
+  const cancelImportBtn = $("#cancelImportBtn");
+  const browseImportBtn = $("#browseImportBtn");
+  const confirmImportBtn = $("#confirmImportBtn");
+  const importSaveInput = $("#importSaveInput");
+  const importDropZone = $("#importDropZone");
+  const selectedImportFileEl = $("#selectedImportFile");
+  const importSaveMessageEl = $("#importSaveMessage");
+
+  let selectedImportPath = "";
+  let selectedImportFileName = "";
 
   function money(n) {
     const value = Number(n || 0);
@@ -87,6 +103,103 @@
         resolve(result);
       });
     });
+  }
+
+  function setMessage(el, text, type = "") {
+    if (!el) return;
+    el.textContent = text || "";
+    el.classList.remove("success", "error", "hidden");
+    if (!text) {
+      el.classList.add("hidden");
+      return;
+    }
+    if (type) el.classList.add(type);
+  }
+
+  function clearMessage(el) {
+    setMessage(el, "");
+  }
+
+  function maybeGetPathFromFile(file) {
+    if (!file) return "";
+    // Qt WebEngine may expose .path in desktop environments.
+    if (typeof file.path === "string" && file.path.trim()) {
+      return file.path.trim();
+    }
+    return "";
+  }
+
+  function isLikelyFakePath(pathValue) {
+    return /^([a-zA-Z]:\\fakepath\\)/i.test(String(pathValue || "").trim());
+  }
+
+  async function handlerBooleanCall(methodName, path) {
+    return new Promise((resolve) => {
+      if (!window.handler || typeof window.handler[methodName] !== "function") {
+        resolve(null);
+        return;
+      }
+      try {
+        window.handler[methodName](path, function (result) {
+          resolve(Boolean(result));
+        });
+      } catch (_err) {
+        resolve(null);
+      }
+    });
+  }
+
+  function resetImportSelection() {
+    selectedImportPath = "";
+    selectedImportFileName = "";
+    if (importSaveInput) importSaveInput.value = "";
+    if (selectedImportFileEl) {
+      selectedImportFileEl.textContent = "";
+      selectedImportFileEl.classList.add("hidden");
+    }
+  }
+
+  function showSelectedImportFile(file, explicitPath = "") {
+    if (!file || !selectedImportFileEl) {
+      resetImportSelection();
+      return;
+    }
+
+    selectedImportFileName = String(file.name || "").trim() || "Selected file";
+    selectedImportPath = explicitPath || maybeGetPathFromFile(file);
+
+    const hasUsablePath =
+      selectedImportPath && !isLikelyFakePath(selectedImportPath);
+    selectedImportFileEl.textContent = hasUsablePath
+      ? `${selectedImportFileName}\n${selectedImportPath}`
+      : `${selectedImportFileName}\nPath access is restricted; enter full path on import.`;
+    selectedImportFileEl.classList.remove("hidden");
+  }
+
+  function openImportModal() {
+    if (!importSaveBackdrop) return;
+    clearMessage(importSaveMessageEl);
+    importSaveBackdrop.classList.remove("hidden");
+    importSaveBackdrop.setAttribute("aria-hidden", "false");
+  }
+
+  function closeImportModal() {
+    if (!importSaveBackdrop) return;
+    importSaveBackdrop.classList.add("hidden");
+    importSaveBackdrop.setAttribute("aria-hidden", "true");
+    clearMessage(importSaveMessageEl);
+    resetImportSelection();
+  }
+
+  function getTimestampStamp() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    return `${y}${m}${d}-${hh}${mm}${ss}`;
   }
 
   function sumAmount(list) {
@@ -500,6 +613,130 @@
       document.getElementById("spendingEmpty").style.display = "block";
     }
   }
+
+  if (exportSaveBtn) {
+    exportSaveBtn.addEventListener("click", async () => {
+      clearMessage(saveToolsMessageEl);
+
+      const suggested = `plutus-export-${getTimestampStamp()}.csv`;
+      const exportPath = window.prompt(
+        "Enter export file path (absolute or relative):",
+        suggested,
+      );
+
+      if (exportPath === null) return;
+      const trimmed = exportPath.trim();
+      if (!trimmed) {
+        setMessage(saveToolsMessageEl, "Export canceled: no file path provided.", "error");
+        return;
+      }
+
+      setMessage(saveToolsMessageEl, "Exporting data...");
+      const ok = await handlerBooleanCall("export_csv", trimmed);
+      if (ok === true) {
+        setMessage(
+          saveToolsMessageEl,
+          `Export completed: ${trimmed}`,
+          "success",
+        );
+        return;
+      }
+
+      setMessage(
+        saveToolsMessageEl,
+        "Export failed. Check the file path and backend export implementation.",
+        "error",
+      );
+    });
+  }
+
+  openImportModalBtn?.addEventListener("click", openImportModal);
+  closeImportModalBtn?.addEventListener("click", closeImportModal);
+  cancelImportBtn?.addEventListener("click", closeImportModal);
+
+  importSaveBackdrop?.addEventListener("click", (e) => {
+    if (e.target === importSaveBackdrop) closeImportModal();
+  });
+
+  browseImportBtn?.addEventListener("click", () => {
+    importSaveInput?.click();
+  });
+
+  importDropZone?.addEventListener("click", () => {
+    importSaveInput?.click();
+  });
+
+  importDropZone?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      importSaveInput?.click();
+    }
+  });
+
+  importSaveInput?.addEventListener("change", () => {
+    clearMessage(importSaveMessageEl);
+    const file = importSaveInput.files?.[0];
+    const inputValue = String(importSaveInput.value || "").trim();
+    const pathFromInput = isLikelyFakePath(inputValue) ? "" : inputValue;
+    showSelectedImportFile(file, pathFromInput);
+  });
+
+  importDropZone?.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    importDropZone.classList.add("dragover");
+  });
+
+  importDropZone?.addEventListener("dragleave", () => {
+    importDropZone.classList.remove("dragover");
+  });
+
+  importDropZone?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    importDropZone.classList.remove("dragover");
+    clearMessage(importSaveMessageEl);
+    const file = e.dataTransfer?.files?.[0];
+    showSelectedImportFile(file);
+  });
+
+  confirmImportBtn?.addEventListener("click", async () => {
+    clearMessage(importSaveMessageEl);
+
+    let importPath = String(selectedImportPath || "").trim();
+    if (!importPath || isLikelyFakePath(importPath)) {
+      const suggestion = selectedImportFileName || "";
+      const manual = window.prompt(
+        "Enter full CSV path to import (path from file picker is restricted):",
+        suggestion,
+      );
+      if (manual === null) return;
+      importPath = String(manual || "").trim();
+    }
+
+    if (!importPath) {
+      setMessage(importSaveMessageEl, "Please select a CSV file or enter a full file path.", "error");
+      return;
+    }
+
+    setMessage(importSaveMessageEl, "Importing data...");
+    const ok = await handlerBooleanCall("import_csv", importPath);
+    if (ok === true) {
+      setMessage(importSaveMessageEl, "Import completed.", "success");
+      setMessage(saveToolsMessageEl, "Import completed successfully.", "success");
+      closeImportModal();
+      window.dispatchEvent(
+        new CustomEvent("plutus-db-changed", { detail: { source: "import" } }),
+      );
+      renderSummaryPage();
+      loadSpendingChart();
+      return;
+    }
+
+    setMessage(
+      importSaveMessageEl,
+      "Import failed. Verify the CSV path/format and backend import logic.",
+      "error",
+    );
+  });
 
   document.addEventListener("DOMContentLoaded", () => {
     renderSummaryPage();
