@@ -588,7 +588,13 @@ class CallHandler(QObject):
     @Slot(str,result=bool)
     def export_csv(self,path):
         db = pd.read_sql("SELECT * FROM Expenses UNION ALL SELECT * FROM Income", self.con)
-        db.to_csv(path, index=False)
+        try:
+            db.to_csv(path, index=False)
+            return True
+        except error:
+            #Failure indicator to notify user to try again.
+            return False
+
 
 
 
