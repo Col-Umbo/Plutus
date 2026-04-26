@@ -6,3 +6,5 @@ __pycache__/**
 plutus.db
 plutus.db-journal
 tests/__pycache__/**
+# Preventing exported files from being pushed
+*.csv

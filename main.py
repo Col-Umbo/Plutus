@@ -540,9 +540,9 @@ class CallHandler(QObject):
             # Exported transactions. Column names and contents do not need to be modified
             df['date'] = pandas.to_datetime(df['date']).dt.strftime("%Y-%m-%d")
             df['amount'] = df['amount'].replace(r'[^.0-9\-]', '', regex=True).astype(float)
-            expenses = df[dataframe['amount']<0]
+            expenses = df[df['amount']<0]
             expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
-            income = df[dataframe['amount']>=0]
+            income = df[df['amount']>=0]
         # Reordering expenses and income
         expenses = expenses[['date','name','categoryName','amount','recurring','frequency','endDate']]
         income = income[['date','name','categoryName','amount','recurring','frequency','endDate']]
