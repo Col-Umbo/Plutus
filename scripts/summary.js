@@ -33,6 +33,7 @@
 
   let selectedImportPath = "";
   let selectedImportFileName = "";
+  let selectedImportFile = null;
 
   function money(n) {
     const value = Number(n || 0);
@@ -133,14 +134,60 @@
     return /^([a-zA-Z]:\\fakepath\\)/i.test(String(pathValue || "").trim());
   }
 
-  async function handlerBooleanCall(methodName, path) {
+  function isLikelyAbsolutePath(pathValue) {
+    const value = String(pathValue || "").trim();
+    return /^[a-zA-Z]:\\/.test(value) || /^\\\\/.test(value) || /^\//.test(value);
+  }
+
+  function fileUriToPath(uri) {
+    const value = String(uri || "").trim();
+    if (!/^file:\/\//i.test(value)) return "";
+    try {
+      const parsed = new URL(value);
+      let pathname = decodeURIComponent(parsed.pathname || "");
+      if (/^\/[a-zA-Z]:\//.test(pathname)) {
+        pathname = pathname.slice(1);
+      }
+      pathname = pathname.replaceAll("/", "\\");
+      if (parsed.hostname && parsed.hostname !== "localhost") {
+        return `\\\\${parsed.hostname}${pathname.startsWith("\\") ? "" : "\\"}${pathname}`;
+      }
+      return pathname;
+    } catch (_err) {
+      return "";
+    }
+  }
+
+  function extractPathFromDataTransfer(dataTransfer) {
+    if (!dataTransfer) return "";
+
+    const uriList = String(dataTransfer.getData("text/uri-list") || "").trim();
+    if (uriList) {
+      const lines = uriList
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith("#"));
+      const firstFileUri = lines.find((line) => /^file:\/\//i.test(line));
+      if (firstFileUri) {
+        const pathFromUri = fileUriToPath(firstFileUri);
+        if (pathFromUri) return pathFromUri;
+      }
+    }
+
+    const plain = String(dataTransfer.getData("text/plain") || "").trim();
+    if (!plain) return "";
+    if (/^file:\/\//i.test(plain)) return fileUriToPath(plain);
+    return isLikelyAbsolutePath(plain) ? plain : "";
+  }
+
+  async function handlerBooleanCall(methodName, value) {
     return new Promise((resolve) => {
       if (!window.handler || typeof window.handler[methodName] !== "function") {
         resolve(null);
         return;
       }
       try {
-        window.handler[methodName](path, function (result) {
+        window.handler[methodName](value, function (result) {
           resolve(Boolean(result));
         });
       } catch (_err) {
@@ -152,6 +199,7 @@
   function resetImportSelection() {
     selectedImportPath = "";
     selectedImportFileName = "";
+    selectedImportFile = null;
     if (importSaveInput) importSaveInput.value = "";
     if (selectedImportFileEl) {
       selectedImportFileEl.textContent = "";
@@ -166,14 +214,27 @@
     }
 
     selectedImportFileName = String(file.name || "").trim() || "Selected file";
+    selectedImportFile = file;
     selectedImportPath = explicitPath || maybeGetPathFromFile(file);
 
     const hasUsablePath =
       selectedImportPath && !isLikelyFakePath(selectedImportPath);
     selectedImportFileEl.textContent = hasUsablePath
       ? `${selectedImportFileName}\n${selectedImportPath}`
-      : `${selectedImportFileName}\nPath access is restricted; enter full path on import.`;
+      : `${selectedImportFileName}\nPath access is restricted; file content will be imported directly.`;
     selectedImportFileEl.classList.remove("hidden");
+  }
+
+  async function importUsingSelectedFileContent() {
+    if (!selectedImportFile || typeof selectedImportFile.text !== "function") {
+      return false;
+    }
+    try {
+      const csvText = await selectedImportFile.text();
+      return await handlerBooleanCall("import_csv_content", csvText);
+    } catch (_err) {
+      return false;
+    }
   }
 
   function openImportModal() {
@@ -695,30 +756,37 @@
     importDropZone.classList.remove("dragover");
     clearMessage(importSaveMessageEl);
     const file = e.dataTransfer?.files?.[0];
-    showSelectedImportFile(file);
+    const droppedPath = extractPathFromDataTransfer(e.dataTransfer);
+    showSelectedImportFile(file, droppedPath);
   });
 
   confirmImportBtn?.addEventListener("click", async () => {
     clearMessage(importSaveMessageEl);
 
     let importPath = String(selectedImportPath || "").trim();
-    if (!importPath || isLikelyFakePath(importPath)) {
+    let ok = null;
+    if (importPath && !isLikelyFakePath(importPath)) {
+      setMessage(importSaveMessageEl, "Importing data...");
+      ok = await handlerBooleanCall("import_csv", importPath);
+    } else if (selectedImportFile) {
+      setMessage(importSaveMessageEl, "Importing selected file...");
+      ok = await importUsingSelectedFileContent();
+    } else {
       const suggestion = selectedImportFileName || "";
       const manual = window.prompt(
-        "Enter full CSV path to import (path from file picker is restricted):",
+        "Enter full CSV path to import:",
         suggestion,
       );
       if (manual === null) return;
       importPath = String(manual || "").trim();
+      if (!importPath) {
+        setMessage(importSaveMessageEl, "Please select a CSV file or enter a full file path.", "error");
+        return;
+      }
+      setMessage(importSaveMessageEl, "Importing data...");
+      ok = await handlerBooleanCall("import_csv", importPath);
     }
 
-    if (!importPath) {
-      setMessage(importSaveMessageEl, "Please select a CSV file or enter a full file path.", "error");
-      return;
-    }
-
-    setMessage(importSaveMessageEl, "Importing data...");
-    const ok = await handlerBooleanCall("import_csv", importPath);
     if (ok === true) {
       setMessage(importSaveMessageEl, "Import completed.", "success");
       setMessage(saveToolsMessageEl, "Import completed successfully.", "success");

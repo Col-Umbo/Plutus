@@ -1,7 +1,9 @@
 import importlib
 import json
+import os
 import sqlite3
 import sys
+import tempfile
 import time
 import types
 import unittest
@@ -370,6 +372,46 @@ class MainCallHandlerTests(unittest.TestCase):
         self.assertTrue(handler.has_password())
         handler.encrypted = False
         self.assertFalse(handler.has_password())
+
+    def test_resolve_file_path_makes_relative_input_absolute(self):
+        handler = main.CallHandler.__new__(main.CallHandler)
+        relative_path = "sample.csv"
+        expected = os.path.normpath(os.path.abspath(relative_path))
+        self.assertEqual(handler._resolve_file_path(relative_path), expected)
+
+    def test_import_csv_content_imports_income_and_expenses(self):
+        handler = make_handler_with_in_memory_db()
+        self.addCleanup(handler.con.close)
+        handler._reload_cache = lambda: None
+        handler.cursor.execute(
+            "CREATE TABLE Income (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT)"
+        )
+        handler.cursor.execute(
+            "CREATE TABLE Expenses (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT)"
+        )
+
+        csv_text = (
+            "Date,Description,Category,Amount\n"
+            "2026-04-01,Paycheck,Income,$1000.00\n"
+            "2026-04-02,Coffee,Food,-$7.50\n"
+        )
+
+        self.assertTrue(handler.import_csv_content(csv_text))
+
+        handler.cursor.execute("SELECT COUNT(*) FROM Income")
+        income_count = handler.cursor.fetchone()[0]
+        handler.cursor.execute("SELECT COUNT(*) FROM Expenses")
+        expense_count = handler.cursor.fetchone()[0]
+
+        self.assertEqual(income_count, 1)
+        self.assertEqual(expense_count, 1)
+
+    def test_import_csv_returns_false_for_missing_file(self):
+        handler = make_handler_with_in_memory_db()
+        self.addCleanup(handler.con.close)
+
+        missing = os.path.join(tempfile.gettempdir(), "__plutus_missing_file__.csv")
+        self.assertFalse(handler.import_csv(missing))
 
 
 if __name__ == "__main__":

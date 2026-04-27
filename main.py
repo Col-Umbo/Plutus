@@ -15,6 +15,8 @@ import sqlite3
 from sqlcipher3 import dbapi2 as sqlite
 import json
 import hashlib
+import io
+from urllib.parse import urlparse, unquote
 
 class CallHandler(QObject):
     database_changed = Signal(str)
@@ -520,38 +522,88 @@ class CallHandler(QObject):
     @Slot(result=bool)
     def has_password(self):
         return self.encrypted
-    @Slot(str,result=bool)
-    def import_csv(self,path):
-        # Usecols should be a list, then iterated over in a lambda function.
-        columns = ['Date','date','Description','Category','categoryName','name','Amount','amount','recurring','frequency','endDate']
-        df = pandas.read_csv(path, usecols = lambda x: x in columns)
+
+    def _resolve_file_path(self, path):
+        resolved = str(path or "").strip().strip('"').strip("'")
+        if not resolved:
+            return ""
+
+        if resolved.lower().startswith("file://"):
+            parsed = urlparse(resolved)
+            uri_path = unquote(parsed.path or "")
+            if os.name == "nt" and len(uri_path) > 2 and uri_path[0] == "/" and uri_path[2] == ":":
+                uri_path = uri_path[1:]
+
+            if parsed.netloc and os.name == "nt":
+                uri_path = f"\\\\{parsed.netloc}{uri_path}"
+
+            resolved = uri_path
+
+        if not os.path.isabs(resolved):
+            resolved = os.path.abspath(resolved)
+        return os.path.normpath(resolved)
+
+    def _build_import_frames(self, df):
         # Read csv and normalize column names
         if 'Date' in df.columns:
             # External banking csv. Rename columns and add missing.
             df = df.rename(columns={'Date':'date','Description':'name','Category':'categoryName','Amount':'amount'})
             df['date'] = pandas.to_datetime(df['date']).dt.strftime("%Y-%m-%d")
             df['amount'] = df['amount'].replace(r'[^.0-9\-]', '', regex=True).astype(float)
-            expenses = df[df['amount']<0]
-            income = df[df['amount']>=0]
+            expenses = df[df['amount']<0].copy()
+            income = df[df['amount']>=0].copy()
             expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
-            expenses = expenses.assign(categoryName="Imported Expenses",recurring=False,frequency=0,endDate=lambda x: x['date'])        
-            income = income.assign(categoryName="Imported Income",recurring=False,frequency=0,endDate=lambda x: x['date'])        
+            expenses = expenses.assign(categoryName="Imported Expenses",recurring=False,frequency=0,endDate=lambda x: x['date'])
+            income = income.assign(categoryName="Imported Income",recurring=False,frequency=0,endDate=lambda x: x['date'])
         else:
             # Exported transactions. Column names and contents do not need to be modified
             df['date'] = pandas.to_datetime(df['date']).dt.strftime("%Y-%m-%d")
             df['amount'] = df['amount'].replace(r'[^.0-9\-]', '', regex=True).astype(float)
-            expenses = df[df['amount']<0]
+            expenses = df[df['amount']<0].copy()
             expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
-            income = df[df['amount']>=0]
+            income = df[df['amount']>=0].copy()
+
         # Reordering expenses and income
         expenses = expenses[['date','name','categoryName','amount','recurring','frequency','endDate']]
         income = income[['date','name','categoryName','amount','recurring','frequency','endDate']]
+        return expenses, income
+
+    def _import_dataframe(self, df):
+        self._unlock()
         try:
+            expenses, income = self._build_import_frames(df)
             expenses.to_sql("Expenses", self.con, schema=None, if_exists='append', index=False, index_label=None, chunksize=None, dtype=None, method=None)
             income.to_sql("Income", self.con, schema=None, if_exists='append', index=False, index_label=None, chunksize=None, dtype=None, method=None)
+            self._reload_cache()
             return True
-        except sqlite.Error as e:
+        except Exception:
             return False
+
+    @Slot(str,result=bool)
+    def import_csv(self,path):
+        normalized_path = self._resolve_file_path(path)
+        if not normalized_path or not os.path.isfile(normalized_path):
+            return False
+
+        # Usecols should be a list, then iterated over in a lambda function.
+        columns = ['Date','date','Description','Category','categoryName','name','Amount','amount','recurring','frequency','endDate']
+        try:
+            df = pandas.read_csv(normalized_path, usecols = lambda x: x in columns)
+        except Exception:
+            return False
+        return self._import_dataframe(df)
+
+    @Slot(str, result=bool)
+    def import_csv_content(self, csv_text):
+        if not str(csv_text or "").strip():
+            return False
+
+        columns = ['Date','date','Description','Category','categoryName','name','Amount','amount','recurring','frequency','endDate']
+        try:
+            df = pandas.read_csv(io.StringIO(csv_text), usecols = lambda x: x in columns)
+        except Exception:
+            return False
+        return self._import_dataframe(df)
 
     @Slot(str,result=bool)
     def export_csv(self,path):
@@ -563,10 +615,6 @@ class CallHandler(QObject):
             #Failure indicator to notify user to try again.
             return False
 
-
-
-
-        
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
