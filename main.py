@@ -607,7 +607,10 @@ class CallHandler(QObject):
 
     @Slot(str,result=bool)
     def export_csv(self,path):
-        db = pandas.read_sql("SELECT * FROM Expenses UNION ALL SELECT * FROM Income", self.con)
+        db = pandas.read_sql("SELECT * FROM Expenses", self.con)
+        db['amount'] = db['amount'].apply(lambda x: x*-1)
+        db2 = pandas.read_sql("SELECT * FROM Income", self.con)
+        db = pandas.concat([db, db2])
         try:
             db.to_csv(path, index=False)
             return True
