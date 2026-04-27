@@ -547,6 +547,9 @@ class CallHandler(QObject):
         # Read csv and normalize column names
         if 'Date' in df.columns:
             # External banking csv. Rename columns and add missing.
+            self.cursor.execute("INSERT OR IGNORE INTO ExpenseCategories (name) VALUES ('Imported Expenses')")
+            self.cursor.execute("INSERT OR IGNORE INTO IncomeCategories (name) VALUES ('Imported Income')")
+            self.con.commit()
             df = df.rename(columns={'Date':'date','Description':'name','Category':'categoryName','Amount':'amount'})
             df['date'] = pandas.to_datetime(df['date']).dt.strftime("%Y-%m-%d")
             df['amount'] = df['amount'].replace(r'[^.0-9\-]', '', regex=True).astype(float)
@@ -560,8 +563,13 @@ class CallHandler(QObject):
             df['date'] = pandas.to_datetime(df['date']).dt.strftime("%Y-%m-%d")
             df['amount'] = df['amount'].replace(r'[^.0-9\-]', '', regex=True).astype(float)
             expenses = df[df['amount']<0].copy()
+            expenseCategories = expenses['categoryName'].unique()
+            self.cursor.executemany("INSERT OR IGNORE INTO ExpenseCategories (name) VALUES (?)", [(category,) for category in expenseCategories])
             expenses['amount'] = expenses['amount'].apply(lambda x: x*-1)
             income = df[df['amount']>=0].copy()
+            incomeCategories = income['categoryName'].unique()
+            self.cursor.executemany("INSERT OR IGNORE INTO IncomeCategories (name) VALUES (?)", [(category,) for category in incomeCategories])
+            self.con.commit()
 
         # Reordering expenses and income
         expenses = expenses[['date','name','categoryName','amount','recurring','frequency','endDate']]
