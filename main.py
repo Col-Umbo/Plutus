@@ -657,11 +657,9 @@ if __name__ == '__main__':
         cursor.execute('CREATE TABLE IF NOT EXISTS IncomeCategories (name TEXT PRIMARY KEY, amount FLOAT, color TEXT)')
         cursor.execute('CREATE TABLE IF NOT EXISTS Income (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, FOREIGN KEY (categoryNAME) REFERENCES IncomeCategories(name))')
         cursor.execute('CREATE TABLE IF NOT EXISTS Expenses (id INTEGER PRIMARY KEY, date TEXT, name TEXT, amount FLOAT, categoryName TEXT, recurring BOOL, frequency INTEGER, endDate TEXT, FOREIGN KEY (categoryName) REFERENCES ExpenseCategories(name))')
-        # cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY, name TEXT, totalBalance FLOAT, remBalance FLOAT, monthlyAmount FLOAT, paidOff BOOL)')
         
         # I (Ethan) added this
         cursor.execute('CREATE TABLE IF NOT EXISTS BudgetAllocations (date TEXT, category TEXT, limitAmount FLOAT, PRIMARY KEY (date, category))')
-        cursor.execute('CREATE TABLE IF NOT EXISTS Goals (id INTEGER PRIMARY KEY AUTOINCREMENT, scenarioType TEXT, amount FLOAT, category TEXT, name TEXT, note TEXT, createdAt INTEGER)')
         cursor.execute('CREATE TABLE IF NOT EXISTS GoalScenarios (id INTEGER PRIMARY KEY AUTOINCREMENT, scenarioType, amount, category, name, note, createdAt)')
         # Default categories
         cursor.execute('INSERT INTO ExpenseCategories (name, amount, color) VALUES ("Bills", 0.00, "#fc0519");')
