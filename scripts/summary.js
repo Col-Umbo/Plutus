@@ -122,6 +122,7 @@
   }
 
   function maybeGetPathFromFile(file) {
+    console.log(file);
     if (!file) return "";
     // Qt WebEngine may expose .path in desktop environments.
     if (typeof file.path === "string" && file.path.trim()) {

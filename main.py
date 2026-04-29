@@ -4,17 +4,14 @@ import classes
 import datetime
 import pandas
 from PySide6.QtCore import QUrl
-from PySide6.QtCore import QObject, Slot, QJsonValue, QJsonArray, Signal, QTimer
+from PySide6.QtCore import QObject, Slot, Signal, QTimer
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QFileInfo
 from PySide6.QtWebEngineCore import QWebEngineSettings
-from PySide6.QtWidgets import QInputDialog, QMessageBox
-import sqlite3
 from sqlcipher3 import dbapi2 as sqlite
 import json
-import hashlib
 import io
 from urllib.parse import urlparse, unquote
 
