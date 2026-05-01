@@ -1,0 +1,9 @@
+Plutus's ethical stance as based on ACM's general ethical principles:
+
+1.1: It is our firm belief that our program contributes to society and offers a meaningful experience to our end users.
+1.2: Plutus inherently avoids harming users through its offline nature, and further makes an effort to protect the private data of its users through its encryption scheme.
+1.3: The Plutus team is committed to transparency in both development and functionality. While development of the program was restricted to the development team, the source code is publicly hosted on our GitHub repository, ensuring users can see every line of code that is executed on their system.
+1.4: There is no capacity in which Plutus could discriminate against users, regardless of the intent of its developers. The program is available for all, and a build script is available for users to attempt compilation on their own systems.
+1.5: The creation of this program would not have been possible without the knowledge of individuals who ran into similar issues prior to our development. Forums and guides online allowed the Plutus team to expedite our development of the program.
+1.6: Privacy is at the heart of the Plutus software, with it being a large part of the reasoning behind its fully offline nature. Plutus moves to ensure user privacy through its opt-in encryption scheme that protects the database and any associated sensitive user data.
+1.7: Only information strictly necessary for functionality of the software is collected from users, and it is secured within the plutus database file. As a fully offline application, Plutus is proud to proclaim that user data is never shared with a third party in any capacity. Bank statements uploaded to the application never leave the application unless the user chooses to export their transactions manually.
